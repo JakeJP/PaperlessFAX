@@ -81,6 +81,11 @@ python scripts/init_sqlite_db.py
 
 デフォルトでは `data/yokinspaperless-dev.db` 開発用データベースファイルが作成されます。
 
+初期状態としてユーザーアカウントが２つ作られます。
+
+admin   admin
+user    user
+
 ### 2) Web サービス 環境構築と起動
 
 ```bash

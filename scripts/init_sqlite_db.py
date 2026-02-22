@@ -125,9 +125,8 @@ def seed_data(conn: sqlite3.Connection) -> None:
         VALUES (?, ?, ?, ?, ?)
         """,
         [
-            ("admin", admin_salt, hash_password("pass1234", admin_salt), 1, 1),
-            ("tanaka", tanaka_salt, hash_password("pass1234", tanaka_salt), 1, 0),
-            ("suzuki", suzuki_salt, hash_password("pass1234", suzuki_salt), 1, 0),
+            ("admin", admin_salt, hash_password("admin", admin_salt), 1, 1),
+            ("user", tanaka_salt, hash_password("user", tanaka_salt), 1, 0),
         ],
     )
 
