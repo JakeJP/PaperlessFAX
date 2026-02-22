@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>技術仕様・内部構造 | Yokinsoft Paperless for FAX</title>
+  <meta name="description" content="Yokinsoft Paperless for FAXの開発言語・依存ライブラリ・ファイル監視の仕組み・よくあるトラブルと対処法など技術的な詳細情報。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #0057ff; --primary-dark: #003fd4; --primary-light: #e8f0ff;
+      --accent: #00c896; --accent-dark: #009f77;
+      --dark: #0a0f1e; --dark-2: #131929;
+      --text: #1a2035; --text-muted: #5a6480;
+      --border: #e4e8f0; --white: #ffffff;
+      --gradient-hero: linear-gradient(135deg, #0a0f1e 0%, #0d1f4a 50%, #0a2a6e 100%);
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.07);
+      --radius: 16px; --radius-sm: 8px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP','Inter',sans-serif; color: var(--text); background: var(--white); line-height: 1.75; overflow-x: hidden; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(10,15,30,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-brand { display: flex; align-items: baseline; gap: .4rem; text-decoration: none; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
+    .nav-brand .accent { color: var(--accent); }
+    .nav-badge { font-size: .65rem; font-weight: 500; background: rgba(0,200,150,.2); color: var(--accent); border: 1px solid rgba(0,200,150,.3); border-radius: 4px; padding: 1px 6px; }
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+    .nav-links a { color: rgba(255,255,255,.7); text-decoration: none; font-size: .875rem; transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    @media (max-width: 640px) { .nav-links { display: none; } }
+
+    .page-hero { padding: 120px 5% 64px; background: var(--gradient-hero); text-align: center; }
+    .breadcrumb { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-bottom: 1.5rem; font-size: .8rem; color: rgba(255,255,255,.45); }
+    .breadcrumb a { color: rgba(255,255,255,.45); text-decoration: none; }
+    .breadcrumb a:hover { color: rgba(255,255,255,.8); }
+    .breadcrumb span { color: rgba(255,255,255,.6); }
+    .page-label { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .8rem; }
+    .page-hero h1 { font-size: clamp(1.8rem,5vw,3rem); font-weight: 900; color: #fff; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 1rem; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,.65); max-width: 580px; margin: 0 auto; }
+
+    .content { max-width: 960px; margin: 0 auto; padding: 0 5%; }
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .section-label { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: .6rem; }
+    h2 { font-size: clamp(1.4rem,3.5vw,2rem); font-weight: 900; color: var(--dark); letter-spacing: -.03em; line-height: 1.25; margin-bottom: .8rem; }
+    h3 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: .75rem; margin-top: 2rem; }
+    h3:first-of-type { margin-top: 0; }
+    .section-intro { font-size: .95rem; color: var(--text-muted); max-width: 700px; margin-bottom: 2.5rem; line-height: 1.8; }
+    p { font-size: .9rem; color: var(--text-muted); line-height: 1.8; }
+
+    code { font-family: 'SFMono-Regular','Consolas','Liberation Mono','Menlo',monospace; font-size: .82rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0f172a; }
+    pre {
+      background: var(--dark); color: #c9d1d9;
+      border-radius: var(--radius-sm); padding: 1.25rem 1.5rem;
+      font-family: 'SFMono-Regular','Consolas','Liberation Mono','Menlo',monospace;
+      font-size: .8rem; line-height: 1.7; overflow-x: auto;
+      margin: 1rem 0;
+    }
+    pre .comment { color: #6e7681; }
+    pre .key { color: #79c0ff; }
+    pre .val { color: #a5d6ff; }
+
+    /* TABLE */
+    .req-table { width: 100%; border-collapse: collapse; font-size: .875rem; margin-bottom: 1.5rem; }
+    .req-table th { text-align: left; padding: .7rem 1rem; background: var(--dark); color: #fff; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+    .req-table td { padding: .75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.65; }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table tr:nth-child(odd) td { background: #f8faff; }
+    .req-table tr:nth-child(even) td { background: #fff; }
+    .req-table td:first-child { font-weight: 600; color: var(--dark); width: 220px; }
+    .badge { display: inline-block; font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: .4rem; }
+    .badge.py  { background: #fef9c3; color: #a16207; }
+    .badge.js  { background: #fef3c7; color: #b45309; }
+    .badge.sys { background: var(--primary-light); color: var(--primary); }
+
+    /* NOTE BOX */
+    .note-box {
+      display: flex; gap: .8rem; align-items: flex-start;
+      border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-top: 1.25rem;
+      font-size: .82rem; line-height: 1.7;
+    }
+    .note-box.warn { background: #fffbeb; border: 1px solid #f59e0b; }
+    .note-box.info { background: #eff6ff; border: 1px solid #3b82f6; }
+    .note-box.critical { background: #fef2f2; border: 1px solid #ef4444; }
+    .note-box.ok { background: #f0fdf4; border: 1px solid #22c55e; }
+    .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .note-box p { margin: 0; color: var(--text); }
+    .note-box strong { color: #92400e; }
+    .note-box.info strong { color: #1e40af; }
+    .note-box.critical strong { color: #b91c1c; }
+    .note-box.ok strong { color: #15803d; }
+
+    /* ARCH */
+    .arch-diagram {
+      background: var(--dark); border-radius: var(--radius);
+      padding: 2rem 1.5rem; margin: 1.5rem 0;
+      font-size: .8rem; color: #fff;
+      overflow-x: auto;
+    }
+    .arch-row { display: flex; align-items: center; gap: .6rem; margin: .4rem 0; flex-wrap: wrap; justify-content: flex-start; }
+    .arch-box {
+      border: 1px solid rgba(255,255,255,.2); border-radius: 8px;
+      padding: .45rem .9rem; text-align: center; min-width: 110px; line-height: 1.4;
+    }
+    .arch-box.server { border-color: var(--primary); background: rgba(0,87,255,.15); }
+    .arch-box.monitor { border-color: var(--accent); background: rgba(0,200,150,.1); }
+    .arch-box.db { border-color: #a78bfa; background: rgba(167,139,250,.1); }
+    .arch-box.fax { border-color: #fb923c; background: rgba(251,146,60,.1); }
+    .arch-box .box-label { font-size: .6rem; letter-spacing: .07em; color: rgba(255,255,255,.45); margin-bottom: .15rem; }
+    .arch-box .box-name { font-weight: 700; font-size: .82rem; color: #fff; }
+    .arch-arrow { color: rgba(255,255,255,.4); font-size: .85rem; white-space: nowrap; }
+
+    /* TROUBLE TABLE */
+    .trouble-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 1rem; }
+    .trouble-table th { text-align: left; padding: .65rem 1rem; background: #1e293b; color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+    .trouble-table th:first-child { width: 35%; }
+    .trouble-table td { padding: .8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.65; }
+    .trouble-table tr:last-child td { border-bottom: none; }
+    .trouble-table tr td:first-child { font-weight: 600; color: #b91c1c; }
+    .trouble-table tr:nth-child(even) td { background: #fafafa; }
+
+    /* LIB GRID */
+    .lib-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .lib-card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 1.1rem 1.3rem;
+    }
+    .lib-card .lib-name { font-size: .9rem; font-weight: 700; color: var(--dark); margin-bottom: .25rem; }
+    .lib-card .lib-version { font-size: .72rem; color: var(--text-muted); background: #f1f5f9; border-radius: 4px; padding: 1px 6px; margin-left: .3rem; font-family: monospace; }
+    .lib-card .lib-desc { font-size: .78rem; color: var(--text-muted); line-height: 1.65; margin-top: .3rem; }
+
+    /* STEP LIST */
+    .step-list { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 1.25rem; }
+    .step-list li { counter-increment: steps; display: flex; align-items: flex-start; gap: 1rem; }
+    .step-list li::before {
+      content: counter(steps); flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; font-weight: 700; margin-top: .15rem;
+    }
+    .step-list li .step-body h4 { font-size: .9rem; font-weight: 700; color: var(--dark); margin-bottom: .2rem; }
+    .step-list li .step-body p { font-size: .83rem; color: var(--text-muted); line-height: 1.7; }
+
+    footer { background: var(--dark-2); color: rgba(255,255,255,.45); padding: 3rem 5%; text-align: center; font-size: .82rem; }
+    footer .footer-brand { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: .5rem; }
+    footer .footer-brand span { color: var(--accent); }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,.7); }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+    .page-nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; flex-wrap: wrap; gap: 1rem; }
+    .page-nav a { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; color: var(--primary); text-decoration: none; font-weight: 600; }
+    .page-nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Yokinsoft <span class="accent">Paperless</span><span class="nav-badge">for FAX</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">ホーム</a></li>
+    <li><a href="features.html">機能詳細</a></li>
+    <li><a href="comparison.html">他製品との比較</a></li>
+    <li><a href="requirements.html">動作環境・前提条件</a></li>
+    <li><a href="specs.html" class="active">技術仕様</a></li>
+    <li><a href="integration.html">連携・カスタマイズ</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <div class="breadcrumb">
+    <a href="index.html">ホーム</a><span>›</span><span>技術仕様・内部構造</span>
+  </div>
+  <div class="page-label">Technical Specs</div>
+  <h1>技術仕様・内部構造</h1>
+  <p>開発言語・依存ライブラリ・ファイル監視の仕組み、起こりうるトラブルと対処法について説明します。</p>
+</div>
+
+<div class="content">
+
+  <!-- ── コンポーネント全体像 ── -->
+  <section id="components">
+    <span class="section-label">アーキテクチャ</span>
+    <h2>システムコンポーネントの構成</h2>
+    <p class="section-intro">
+      本システムは「ファイル監視モジュール（Python）」と「Web インターフェース（Node.js + React）」の 2 つのプロセスで構成されています。それぞれ独立して動作し、SQLite データベースを介してデータを共有します。
+    </p>
+
+    <div class="arch-diagram">
+      <div class="arch-row">
+        <div class="arch-box fax">
+          <div class="box-label">FAXサーバー</div>
+          <div class="box-name">受信フォルダ<br><small style="font-size:.7rem;opacity:.7">PDF / TIFF</small></div>
+        </div>
+        <span class="arch-arrow">─── watchdog 監視 ───▶</span>
+        <div class="arch-box monitor">
+          <div class="box-label">monitor/ （Python）</div>
+          <div class="box-name">ファイル監視<br>AI解析・DB登録</div>
+        </div>
+        <span class="arch-arrow">──▶</span>
+        <div class="arch-box db">
+          <div class="box-label">data/</div>
+          <div class="box-name">SQLite DB</div>
+        </div>
+      </div>
+      <div class="arch-row" style="margin-top:1.2rem;">
+        <div class="arch-box fax" style="opacity:0;pointer-events:none;">dummy</div>
+        <span class="arch-arrow" style="opacity:0;">dummy</span>
+        <div class="arch-box" style="border-color:rgba(255,255,255,.15);opacity:0;pointer-events:none;">dummy</div>
+        <span class="arch-arrow">──▶</span>
+        <div class="arch-box server">
+          <div class="box-label">web/ （Node.js）</div>
+          <div class="box-name">API + Webサーバー</div>
+        </div>
+        <span class="arch-arrow">◀── HTTP ───</span>
+        <div class="arch-box monitor" style="border-color:var(--accent);">
+          <div class="box-label">ブラウザ</div>
+          <div class="box-name">React SPA</div>
+        </div>
+      </div>
+    </div>
+
+    <table class="req-table" style="margin-top:1.5rem;">
+      <thead><tr><th>コンポーネント</th><th>ディレクトリ</th><th>役割</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>ファイル監視モジュール</td>
+          <td><code>monitor/</code></td>
+          <td>受信フォルダの新規ファイルを検知し、Google Gemini API で AI 解析・分類して SQLite DB に登録する</td>
+        </tr>
+        <tr>
+          <td>Web アプリケーションサーバー</td>
+          <td><code>web/server/</code></td>
+          <td>SQLite DB を参照する REST API を提供する（Node.js + Express）</td>
+        </tr>
+        <tr>
+          <td>フロントエンド SPA</td>
+          <td><code>web/src/</code></td>
+          <td>ブラウザで動作する文書一覧・検索・詳細閲覧 UI（React + TypeScript + Tailwind CSS）</td>
+        </tr>
+        <tr>
+          <td>データベース</td>
+          <td><code>data/</code>（設定で変更可）</td>
+          <td>SQLite ファイル。文書メタデータ・AI解析結果・ユーザー情報を保持する</td>
+        </tr>
+        <tr>
+          <td>プラグイン</td>
+          <td><code>plugins/docTypeHandlers/</code></td>
+          <td>文書タイプ別の後処理ハンドラー（拡張用）</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 開発言語・技術スタック ── -->
+  <section id="stack">
+    <span class="section-label">Technology Stack</span>
+    <h2>開発言語・フレームワーク</h2>
+    <p class="section-intro">
+      サーバーサイドはオープンソース技術のみで構成されており、ライセンス費用はかかりません。
+    </p>
+
+    <h3>ファイル監視モジュール（<code>monitor/</code>）</h3>
+    <table class="req-table">
+      <thead><tr><th>言語 / 技術</th><th>用途・説明</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Python 3.10+</td>
+          <td>メイン実行言語。ファイル監視ループ・AI 呼び出し・DB 書き込みをすべて Python で実装</td>
+        </tr>
+        <tr>
+          <td>Google Gemini API</td>
+          <td>FAX 画像の OCR 相当処理および文書分類（JSON 応答スキーマ使用）</td>
+        </tr>
+        <tr>
+          <td>SQLite（標準ライブラリ）</td>
+          <td>解析済みデータの永続化。Python 標準の <code>sqlite3</code> モジュールを使用</td>
+        </tr>
+        <tr>
+          <td>systemd service</td>
+          <td>Linux でのデーモン化。<code>yokinsoft-paperless-monitor.service.sample</code> を収録</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Web インターフェース（<code>web/</code>）</h3>
+    <table class="req-table">
+      <thead><tr><th>言語 / 技術</th><th>用途・説明</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Node.js 18+</td>
+          <td>API サーバー (Express) およびビルドツール (Vite) のランタイム</td>
+        </tr>
+        <tr>
+          <td>TypeScript</td>
+          <td>フロントエンド全体の型安全な実装</td>
+        </tr>
+        <tr>
+          <td>React 18</td>
+          <td>SPA フレームワーク。ページルーティングに React Router v6 を使用</td>
+        </tr>
+        <tr>
+          <td>Tailwind CSS v4</td>
+          <td>UI スタイリング。カスタムコンポーネントへの utility-first CSS</td>
+        </tr>
+        <tr>
+          <td>Express.js</td>
+          <td>REST API サーバー (<code>server/index.mjs</code>)。フロントエンドの静的ファイル配信も兼ねる</td>
+        </tr>
+        <tr>
+          <td>Vite</td>
+          <td>フロントエンドバンドラ・開発サーバー</td>
+        </tr>
+        <tr>
+          <td>better-sqlite3</td>
+          <td>Node.js から SQLite DB を同期的に読み書きする高速 C++ バインディング</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 依存ライブラリ ── -->
+  <section id="deps">
+    <span class="section-label">Dependencies</span>
+    <h2>依存ライブラリ一覧</h2>
+    <p class="section-intro">
+      主要な依存ライブラリをまとめます。各バージョン表記はリリース時点の推奨バージョンです。
+    </p>
+
+    <h3>Python ライブラリ（<code>monitor/requirements.txt</code>）</h3>
+    <div class="lib-grid">
+      <div class="lib-card">
+        <div class="lib-name">google-genai <span class="lib-version">&gt;=0.6</span> <span class="badge py">Python</span></div>
+        <div class="lib-desc">Google Gemini API クライアント。FAX 画像を送信して OCR・分類 JSON を取得する主要コンポーネント。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">PyMuPDF <span class="lib-version">&gt;=1.24</span> <span class="badge py">Python</span></div>
+        <div class="lib-desc">PDF / TIFF のページ画像変換・ JPEG サムネイル生成に使用。<code>poppler</code> 等の外部バイナリ不要で、<code>pip install PyMuPDF</code> 単体で完結する。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">watchdog <span class="lib-version">&gt;=5.0</span> <span class="badge py">Python</span></div>
+        <div class="lib-desc">ファイルシステム監視ライブラリ。Linux では inotify、Windows では ReadDirectoryChangesW をラップ。</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:2.5rem;">Node.js ライブラリ（<code>web/package.json</code>）</h3>
+    <div class="lib-grid">
+      <div class="lib-card">
+        <div class="lib-name">express <span class="lib-version">^4</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">API サーバーフレームワーク。文書一覧・詳細・ユーザー管理・ファイル配信の REST エンドポイントを提供。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">better-sqlite3 <span class="lib-version">^11</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">同期 SQLite バインディング。非同期 I/O を排除することでシンプルな API 実装を実現。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">react <span class="lib-version">^18</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">UI ライブラリ。コンポーネント単位の状態管理でページ遷移・フィルタ・詳細表示を実装。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">react-router-dom <span class="lib-version">^6</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">SPA のクライアントサイドルーティング（<code>/documents</code>・<code>/documents/:id</code>・<code>/admin</code> 等）。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">@heroicons/react <span class="lib-version">^2</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">Tailwind Labs 製 SVG アイコンセット。UI 全体のアイコン表示に使用。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">vite <span class="lib-version">^5</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">高速 ES モジュールバンドラ。HMR による開発環境と本番ビルドを提供。</div>
+      </div>
+      <div class="lib-card">
+        <div class="lib-name">tailwindcss <span class="lib-version">^4</span> <span class="badge js">Node.js</span></div>
+        <div class="lib-desc">ユーティリティファースト CSS フレームワーク。v4 系は PostCSS プラグインとして動作。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ファイル監視の仕組み ── -->
+  <section id="monitor">
+    <span class="section-label">File Monitoring</span>
+    <h2>ファイル監視の仕組み</h2>
+    <p class="section-intro">
+      <code>monitor/monitor.py</code> は起動し続け、指定フォルダに新しいファイルが作成されると即座に処理を開始します。以下にその動作フローを示します。
+    </p>
+
+    <ul class="step-list">
+      <li>
+        <div class="step-body">
+          <h4>フォルダ監視の開始</h4>
+          <p>起動時に <code>watchdog</code> ライブラリでフォルダの監視を開始します。<code>watchdog</code> は OS のファイルシステムイベントを抽象化するライブラリで、プラットフォームごとに適切なバックエンドを自動選択します。ただしネットワーク共有（NFS / Samba）では OS イベントが利用できないため、<code>PollingObserver</code>（定期ポーリング）への切り替えが必要です。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>ファイル作成イベントの受信</h4>
+          <p><code>on_created</code> イベントが発火します。対象は PDF または TIFF（設定で変更可）のみ。一時ファイル（<code>.tmp</code>・<code>.part</code> 等）はスキップされます。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>書き込み完了の待機</h4>
+          <p>FAX サーバーがファイルを書き込み中の状態で処理を開始すると破損ファイルを読み込む可能性があります。ファイルサイズの変化がなくなるまで短い間隔でポーリングし、書き込み完了を確認してから次ステップへ進みます。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>重複チェック</h4>
+          <p>同じファイルパスが既に DB に登録されているかを確認します。再起動時や意図しない二重処理を防ぎます。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>AI 解析（Google Gemini API 呼び出し）</h4>
+          <p>PDF/TIFF をページ画像に変換し、Google Gemini API に送信。文書タイトル・送信者名・送信者組織・受信者・文書タイプ・信頼度などを含む JSON を受け取ります。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>サムネイル生成</h4>
+          <p>1 ページ目の画像から JPEG サムネイルを生成し、Base64 エンコードして DB に保存します。フロントエンドの文書詳細画面の原本プレビューに使用されます。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>DB 登録</h4>
+          <p>AI 解析結果・メタデータ・ファイルパス・受信日時を SQLite DB に INSERT します。Node.js API サーバーはこの DB を参照するだけのため、監視モジュールと Web サーバー間の直接通信は不要です。</p>
+        </div>
+      </li>
+    </ul>
+
+    <div class="note-box ok" style="margin-top:1.5rem;">
+      <span class="note-icon">✅</span>
+      <p><strong>スキャン一括処理：</strong><code>--scandir</code> オプションでフォルダ内の既存ファイルを一括処理できます。導入初期に既存 FAX を一括登録する場合に便利です。</p>
+    </div>
+  </section>
+
+  <!-- ── トラブルシューティング ── -->
+  <section id="trouble">
+    <span class="section-label">Troubleshooting</span>
+    <h2>ファイル検知に関するトラブルと対処</h2>
+    <p class="section-intro">
+      ファイル監視は OS・ファイルシステム・ネットワーク共有など環境依存の要素が多く、さまざまな問題が発生しやすい箇所です。代表的なトラブルと原因・対処法をまとめます。
+    </p>
+
+    <table class="trouble-table">
+      <thead>
+        <tr>
+          <th>症状</th>
+          <th>原因と対処</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>新規ファイルを置いても何も起きない</td>
+          <td>
+            <strong>① 監視プロセスが起動していない</strong><br>
+            <code>ps aux | grep monitor.py</code>（Linux）または タスクマネージャー（Windows）でプロセスを確認。<br><br>
+            <strong>② 監視フォルダのパスが間違っている</strong><br>
+            設定ファイルの <code>MONITOR_DIR</code>（<code>.env</code>）の絶対パスを再確認。<br><br>
+            <strong>③ ファイル拡張子が対象外</strong><br>
+            デフォルトでは <code>.pdf</code> と <code>.tif/.tiff</code> のみ。FAX サーバーが出力する拡張子を確認し、必要なら設定を変更。
+          </td>
+        </tr>
+        <tr>
+          <td>NFS / Samba 共有フォルダで検知されない</td>
+          <td>
+            <strong>ネットワーク共有ファイルシステムでは OS のファイルシステムイベントが発火しない</strong><br>
+            NFS・Samba マウントでは OS のファイルシステムイベントが利用できません。<code>watchdog</code> を <strong>ポーリングモード</strong>（<code>PollingObserver</code>）で使用するように設定を変更するか、FAX サーバーと Paperless サーバーを同一マシンにする、または rsync / scp で定期コピーする構成を検討してください。
+          </td>
+        </tr>
+        <tr>
+          <td>ファイルが壊れた状態で登録される</td>
+          <td>
+            <strong>FAX サーバーの書き込みが完了する前に処理が始まった</strong><br>
+            大きな PDF ファイルでは書き込みに数秒かかることがあります。監視スクリプトの「書き込み完了待機」タイムアウト値（<code>WRITE_WAIT_SECONDS</code>）を長めに設定してください。
+          </td>
+        </tr>
+        <tr>
+          <td>同じ文書が二重登録される</td>
+          <td>
+            <strong>① FAX サーバーがファイルを移動・コピーしている</strong><br>
+            ファイルを別ディレクトリにコピーした後に削除する仕組みのFAXサーバーでは、コピー先＋コピー元で 2 回イベントが発生することがあります。<br><br>
+            <strong>② 監視プロセスを再起動した</strong><br>
+            再起動時の既存ファイルの再処理を防ぐため、DB に登録済みのパスのスキップ処理が実装されていますが、パスが変わった場合はスキップされません。
+          </td>
+        </tr>
+        <tr>
+          <td>AI 解析がタイムアウトする</td>
+          <td>
+            <strong>Google Gemini API への通信が遅い・失敗している</strong><br>
+            インターネット接続やプロキシ設定を確認。ページ数の多い PDF（10 ページ以上）では処理時間が長くなります。<code>API_TIMEOUT_SECONDS</code> を増やすか、先頭数ページのみ送信する設定を検討してください。
+          </td>
+        </tr>
+        <tr>
+          <td>AI 解析は成功するが分類が「未分類」になる</td>
+          <td>
+            <strong>① 文書クラスの定義がない・一致しない</strong><br>
+            管理画面から文書クラス（文書タイプ）を追加してください。AI はここで定義したクラスに基づいて分類を試みます。<br><br>
+            <strong>② FAX 画像の品質が低い</strong><br>
+            手書き・かすれた文字は AI の認識精度が下がります。FAX 受信解像度（DPI）設定を高めるか、FAX 機器の調整を検討してください。
+          </td>
+        </tr>
+        <tr>
+          <td>PDF / TIFF が処理されない</td>
+          <td>
+            <strong>PyMuPDF のインストール不足またはバージョン不足</strong><br>
+            <code>pip show PyMuPDF</code> でインストールを確認してください。バージョンが古い場合は <code>pip install --upgrade PyMuPDF</code> で更新してください。外部バイナリは不要です。
+          </td>
+        </tr>
+        <tr>
+          <td>Windows でモニターが突然停止する</td>
+          <td>
+            <strong>ReadDirectoryChangesW のバッファ溢れ</strong><br>
+            短時間に大量のファイルが作成されると Windows のイベントバッファが溢れることがあります。<code>watchdog</code> の設定でバッファサイズを大きくするか、処理間隔を設けてください。Windowsサービスとして登録する場合は再起動ポリシーを設定することも推奨します。
+          </td>
+        </tr>
+        <tr>
+          <td>ログに permissionerror が出る</td>
+          <td>
+            <strong>実行ユーザーに監視フォルダへの読み取り権限がない</strong><br>
+            FAX サーバーが保存したファイルのオーナー・パーミッションが <code>monitor.py</code> の実行ユーザーと異なる場合に発生します。<code>chmod</code> / <code>chown</code> でパーミッションを調整するか、FAX サーバーと同一ユーザーで実行してください。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note-box warn" style="margin-top:1.5rem;">
+      <span class="note-icon">⚠️</span>
+      <p><strong>ログの確認方法：</strong>トラブル時はまずモニタープロセスの標準出力・エラー出力を確認してください。systemd で動かしている場合は <code>journalctl -u yokinsoft-paperless-monitor -f</code> でリアルタイムログを確認できます。</p>
+    </div>
+  </section>
+
+  <!-- ── データベース構造 ── -->
+  <section id="database">
+    <span class="section-label">Database</span>
+    <h2>データベース構造の概要</h2>
+    <p class="section-intro">
+      SQLite ファイルをデータストアとして使用します。外部 DB サーバーは不要で、シングルファイルなのでバックアップも容易です。
+    </p>
+
+    <table class="req-table">
+      <thead><tr><th>テーブル</th><th>概要</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>Documents</code></td>
+          <td>受信 FAX 1 件ごとのレコード。タイトル・送信者・送信者組織・受信者・受信日時・ファイルパス・文書クラス・既読フラグ・AI 解析 JSON（DocumentData）などを保持する</td>
+        </tr>
+        <tr>
+          <td><code>DocumentClasses</code></td>
+          <td>文書タイプの定義（クラスID・名称・優先順位・有効フラグ・分類プロンプト）。管理画面から追加・編集可能</td>
+        </tr>
+        <tr>
+          <td><code>Users</code></td>
+          <td>ログインユーザーアカウント（ユーザー名・パスワードハッシュ・塩・有効フラグ・管理者フラグ）</td>
+        </tr>
+        <tr>
+          <td><code>ApiKeys</code></td>
+          <td>API キー管理（キーハッシュ・有効期限・有効フラグ）。外部連携用</td>
+        </tr>
+        <tr>
+          <td><code>Queue</code></td>
+          <td>処理待ちファイルのキュー。監視モジュールが登録し、リトライ管理にも使用する</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note-box info">
+      <span class="note-icon">ℹ️</span>
+      <p><strong>バックアップ：</strong>SQLite はシングルファイル（<code>data/paperless.db</code> 等）です。ファイルをコピーするだけでバックアップできます。定期的な cron コピーや rsync を推奨します。Monitor・Web サーバーが停止している状態でのコピーが最も安全です。</p>
+    </div>
+  </section>
+
+  <!-- ── ディレクトリ構造 ── -->
+  <section id="directory">
+    <span class="section-label">Directory Structure</span>
+    <h2>ディレクトリ構成</h2>
+    <p class="section-intro">主要なファイルとその役割をまとめます。</p>
+<pre><code>YokinsPaperless/
+├── <span class="key">monitor/</span>       <span class="comment"># ファイル監視モジュール（Python）</span>
+├── <span class="key">web/</span>           <span class="comment"># Web インターフェース（Node.js + React）</span>
+├── <span class="key">plugins/</span>       <span class="comment"># 文書タイプ別後処理ハンドラー（拡張用）</span>
+├── <span class="key">data/</span>          <span class="comment"># SQLite DB ファイルの保存先（設定で変更可）</span>
+├── <span class="key">scripts/</span>       <span class="comment"># DB 初期化スクリプト等</span>
+└── <span class="key">docs/</span>          <span class="comment"># このドキュメントサイト</span></code></pre>
+  </section>
+
+  <div class="page-nav">
+    <a href="requirements.html">← 動作環境・前提条件</a>
+    <a href="integration.html">連携・カスタマイズを見る →</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-brand">Yokinsoft <span>Paperless</span> for FAX</div>
+  <div class="footer-links">
+    <a href="index.html">ホーム</a>
+    <a href="features.html">機能詳細</a>
+    <a href="comparison.html">比較</a>
+    <a href="requirements.html">動作環境</a>
+    <a href="specs.html">技術仕様</a>
+    <a href="integration.html">連携・カスタマイズ</a>
+  </div>
+  <p>&copy; Yokinsoft. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カスタマイズ・連携ガイド | Yokinsoft Paperless for FAX</title>
+  <meta name="description" content="DocumentClass プロンプトのカスタマイズによる独自 JSON 出力と、plugins フォルダへのカスタムハンドラ実装について解説します。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #0057ff; --primary-dark: #003fd4; --primary-light: #e8f0ff;
+      --accent: #00c896; --accent-dark: #009f77;
+      --dark: #0a0f1e; --dark-2: #131929;
+      --text: #1a2035; --text-muted: #5a6480;
+      --border: #e4e8f0; --white: #ffffff;
+      --gradient-hero: linear-gradient(135deg, #0a0f1e 0%, #0d1f4a 50%, #0a2a6e 100%);
+      --gradient-accent: linear-gradient(135deg, #0057ff, #00c896);
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.07);
+      --shadow-hover: 0 16px 48px rgba(0,87,255,0.14);
+      --radius: 16px; --radius-sm: 8px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP','Inter',sans-serif; color: var(--text); background: var(--white); line-height: 1.75; overflow-x: hidden; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(10,15,30,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-brand { display: flex; align-items: baseline; gap: .4rem; text-decoration: none; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
+    .nav-brand .accent { color: var(--accent); }
+    .nav-badge { font-size: .65rem; font-weight: 500; background: rgba(0,200,150,.2); color: var(--accent); border: 1px solid rgba(0,200,150,.3); border-radius: 4px; padding: 1px 6px; }
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+    .nav-links a { color: rgba(255,255,255,.7); text-decoration: none; font-size: .875rem; transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    @media (max-width: 640px) { .nav-links { display: none; } }
+
+    /* PAGE HERO */
+    .page-hero {
+      padding: 120px 5% 64px;
+      background: var(--gradient-hero);
+      text-align: center;
+    }
+    .breadcrumb { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-bottom: 1.5rem; font-size: .8rem; color: rgba(255,255,255,.45); }
+    .breadcrumb a { color: rgba(255,255,255,.45); text-decoration: none; }
+    .breadcrumb a:hover { color: rgba(255,255,255,.8); }
+    .breadcrumb span { color: rgba(255,255,255,.6); }
+    .page-label { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .8rem; }
+    .page-hero h1 { font-size: clamp(1.8rem,5vw,3rem); font-weight: 900; color: #fff; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 1rem; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,.65); max-width: 580px; margin: 0 auto; }
+
+    /* CONTENT */
+    .content { max-width: 1000px; margin: 0 auto; padding: 0 5%; }
+    section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+    section:last-child { border-bottom: none; }
+    .section-label { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: .6rem; }
+    h2 { font-size: clamp(1.4rem,3.5vw,2rem); font-weight: 900; color: var(--dark); letter-spacing: -.03em; line-height: 1.25; margin-bottom: .8rem; }
+    h3 { font-size: 1.1rem; font-weight: 700; color: var(--dark); margin: 1.8rem 0 .6rem; display: flex; align-items: center; gap: .5rem; }
+    .section-intro { font-size: .95rem; color: var(--text-muted); max-width: 700px; margin-bottom: 2.5rem; line-height: 1.8; }
+
+    /* DETAIL LIST */
+    .detail-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; margin: .8rem 0; }
+    .detail-list li { display: flex; align-items: flex-start; gap: .6rem; font-size: .875rem; color: var(--text); }
+    .detail-list li::before { content: '▸'; color: var(--accent); font-size: .75rem; flex-shrink: 0; margin-top: .35rem; }
+
+    /* NOTE BOX */
+    .note-box {
+      display: flex; gap: .8rem; align-items: flex-start;
+      background: #fffbeb; border: 1px solid #f59e0b; border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem; margin: 1.2rem 0;
+    }
+    .note-box.info { background: #eff6ff; border-color: #3b82f6; }
+    .note-box.success { background: #e8f9f4; border-color: #00c896; }
+    .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .note-box p { font-size: .82rem; color: var(--text); line-height: 1.7; margin: 0; }
+    .note-box strong { color: #92400e; }
+    .note-box.info strong { color: #1e40af; }
+    .note-box.success strong { color: #007a5e; }
+
+    /* CODE BLOCK */
+    .code-wrap {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--radius-sm);
+      overflow: auto;
+      margin: 1.2rem 0;
+      position: relative;
+    }
+    .code-wrap pre {
+      padding: 1.2rem 1.4rem;
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: .8rem;
+      line-height: 1.7;
+      color: #e6edf3;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-label {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .45rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: .7rem; font-weight: 600; color: #8b949e;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+    .code-label-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    /* syntax highlight helpers */
+    .ck  { color: #8b949e; }   /* comment */
+    .cs  { color: #a5d6ff; }   /* string */
+    .cn  { color: #79c0ff; }   /* number/key */
+    .cp  { color: #ff7b72; }   /* keyword */
+    .cf  { color: #d2a8ff; }   /* function */
+    .cv  { color: #ffa657; }   /* variable */
+
+    /* TWO-COL */
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* FIELD TABLE */
+    .field-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: 1.2rem 0; }
+    .field-table th { background: var(--primary-light); color: var(--primary-dark); padding: .55rem .9rem; text-align: left; font-weight: 700; font-size: .75rem; letter-spacing: .04em; }
+    .field-table td { padding: .5rem .9rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .field-table tr:last-child td { border-bottom: none; }
+    .field-table td code { font-family: monospace; font-size: .8em; background: #f0f4ff; color: var(--primary-dark); padding: 1px 5px; border-radius: 4px; }
+    .field-table td.muted { color: var(--text-muted); font-size: .8rem; }
+
+    /* STEP BADGE */
+    .step-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+      background: var(--gradient-accent); color: #fff;
+      font-size: .7rem; font-weight: 900;
+    }
+
+    /* FOOTER */
+    footer { background: var(--dark-2); color: rgba(255,255,255,.45); padding: 3rem 5%; text-align: center; font-size: .82rem; }
+    footer .footer-brand { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: .5rem; }
+    footer .footer-brand span { color: var(--accent); }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,.7); }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+    .page-nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; flex-wrap: wrap; gap: 1rem; }
+    .page-nav a { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; color: var(--primary); text-decoration: none; font-weight: 600; }
+    .page-nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Yokinsoft <span class="accent">Paperless</span><span class="nav-badge">for FAX</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">ホーム</a></li>
+    <li><a href="features.html">機能詳細</a></li>
+    <li><a href="comparison.html">他製品との比較</a></li>
+    <li><a href="requirements.html">動作環境・前提条件</a></li>
+    <li><a href="specs.html">技術仕様</a></li>
+    <li><a href="integration.html" class="active">連携・カスタマイズ</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <div class="breadcrumb">
+    <a href="index.html">ホーム</a>
+    <span>›</span>
+    <span>連携・カスタマイズ</span>
+  </div>
+  <div class="page-label">Integration &amp; Customization</div>
+  <h1>連携・カスタマイズガイド</h1>
+  <p>プロンプトのカスタマイズで独自 JSON を取り出す方法と、文書種別ごとのカスタムハンドラをプログラムする方法を解説します。</p>
+</div>
+
+<div class="content">
+
+  <!-- ============================================================
+       SECTION 1 : PROMPT CUSTOMIZATION
+       ============================================================ -->
+  <section id="prompt">
+    <span class="section-label">Customization 01</span>
+    <h2>文書タイプ別 AI プロンプトのカスタマイズ</h2>
+    <p class="section-intro">
+      各 DocumentClass に設定するプロンプトを工夫することで、AI の出力 JSON に固有のフィールドを追加できます。
+      抽出したい項目と形式を自然言語で指示するだけで、構造化データとして取り出せます。
+    </p>
+
+    <!-- 1-1 プロンプトの構造 -->
+    <h3><span class="step-badge">1</span>プロンプト全体の構造を理解する</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+      AI へ送られるプロンプトは、<strong>システム共通部分</strong>と<strong>各 DocumentClass ごとの追記部分</strong>が結合されたものです。
+      管理画面で DocumentClass に設定するテキストは、後者の「追記部分」にあたります。
+    </p>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;AI へ送られるプロンプトの全体構造（概念図）
+      </div>
+      <pre><span class="ck"># システム共通プロンプト（変更不可）</span>
+PDFまたは画像ファイルの内容を読み取り、文書の種類を判定してください。
+JSONのみを返答してください。...
+
+<span class="cn">fax_properties</span>: <span class="ck">{ ... FAXヘッダー情報 }</span>
+<span class="cn">content_properties</span>: <span class="ck">{ ... 本文の共通項目 }</span>
+<span class="cn">typed_properties</span>: <span class="ck">{ ... ★ 各クラスの指示で追加するフィールド }</span>
+
+<span class="ck">-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=ypl  ← DocumentClass の区切り文字</span>
+
+<span class="ck">### Invoice（管理画面で設定した DocumentClassID）</span>
+<span class="ck">DocumentClassID  Invoice</span>
+
+<span class="cv">↑ここから下が管理画面の「Prompt」フィールドに書いたテキスト</span>
+
+請求書と判定するための条件と、抽出すべき項目…
+
+<span class="ck">-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=ypl</span>
+
+<span class="ck">### OrderForm（次の DocumentClass）</span>
+<span class="ck">DocumentClassID  OrderForm</span>
+…</pre>
+    </div>
+
+    <div class="note-box info">
+      <span class="note-icon">ℹ️</span>
+      <p>管理画面の「Prompt」欄に書いたテキストは、そのままの形で AI へ渡されます。Markdown 形式で箇条書きや見出しを使うと AI が読みやすくなります。</p>
+    </div>
+
+    <!-- 1-2 基本の出力スキーマ -->
+    <h3><span class="step-badge">2</span>基本の出力 JSON スキーマ</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+      すべての分類結果に共通して出力されるフィールドです。DocumentClass のプロンプトで指示した内容は <code>typed_properties</code> に格納されます。
+    </p>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;AI 出力 JSON の共通スキーマ
+      </div>
+      <pre>{
+  <span class="cn">"documentClassId"</span>: <span class="cs">"Invoice"</span>,         <span class="ck">// 判定された DocumentClassID（null = 不明）</span>
+  <span class="cn">"confidence"</span>:      <span class="cs">0.95</span>,             <span class="ck">// 分類確信度（0.0 〜 1.0）</span>
+  <span class="cn">"fax_properties"</span>: {               <span class="ck">// FAX ヘッダー／フッターから読み取った伝送情報</span>
+    <span class="cn">"senderName"</span>:            <span class="cs">"..."</span>,
+    <span class="cn">"senderFaxNumber"</span>:        <span class="cs">"..."</span>,
+    <span class="cn">"recipientName"</span>:          <span class="cs">"..."</span>,
+    <span class="cn">"recipientFaxNumber"</span>:      <span class="cs">"..."</span>,
+    <span class="cn">"transmissionTimestamp"</span>:   <span class="cs">"2026-02-18T08:18:00"</span>,
+    <span class="cn">"totalPages"</span>:             <span class="cs">3</span>,
+    <span class="cn">"jobId"</span>:                  <span class="cs">"..."</span>
+  },
+  <span class="cn">"content_properties"</span>: {           <span class="ck">// 本文から読み取った共通情報</span>
+    <span class="cn">"title"</span>:                 <span class="cs">"請求書"</span>,
+    <span class="cn">"senderName"</span>:            <span class="cs">"XX 商事株式会社"</span>,
+    <span class="cn">"senderFaxNumber"</span>:        <span class="cs">"03-1234-5678"</span>,
+    <span class="cn">"senderPhoneNumber"</span>:      <span class="cs">"03-1234-5679"</span>,
+    <span class="cn">"recipientName"</span>:          <span class="cs">"担当者名"</span>,
+    <span class="cn">"recipientFaxNumber"</span>:      <span class="cs">"..."</span>,
+    <span class="cn">"recipientPhoneNumber"</span>:    <span class="cs">"..."</span>,
+    <span class="cn">"timestamp"</span>:              <span class="cs">"2026-02-10T00:00:00"</span>
+  },
+  <span class="cn">"typed_properties"</span>: {             <span class="ck">// ★ DocumentClass のプロンプトで追加した固有フィールド</span>
+    <span class="ck">// （後述のカスタマイズ例を参照）</span>
+  },
+  <span class="cn">"notes"</span>: <span class="cs">""</span>                        <span class="ck">// 補足コメント（AI が任意で記入）</span>
+}</pre>
+    </div>
+
+    <!-- 1-3 typed_properties のカスタマイズ方法 -->
+    <h3><span class="step-badge">3</span>typed_properties に独自フィールドを追加する</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+      DocumentClass の「Prompt」フィールドに、<code>typed_properties</code> へ格納してほしい項目をJSON形式のサンプルとともに指示します。
+      AI はその指示に従って、文書画像から該当する値を読み取り出力します。
+    </p>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;管理画面 → DocumentClass「Invoice」の Prompt 記述例
+      </div>
+      <pre><span class="ck">## 分類条件</span>
+
+次のいずれかに当てはまる場合、この文書を Invoice（請求書）と判定してください。
+
+- 「請求書」「御請求書」「Invoice」などの見出しがある
+- 請求金額・振込先口座・請求日が記載されている
+- 発行者の印鑑または社名スタンプがある
+
+<span class="ck">## 抽出フィールド</span>
+
+以下のフィールドを <span class="cn">typed_properties</span> に格納してください。
+読み取れない場合は <span class="cp">null</span> としてください。
+
+```json
+{
+  "typed_properties": {
+    "invoiceNumber":    "請求書番号（文字列）",
+    "invoiceDate":      "請求日（ISO 日付文字列 YYYY-MM-DD）",
+    "dueDate":          "支払期限（ISO 日付文字列 YYYY-MM-DD）",
+    "totalAmount":      "請求合計金額（税込、数値）",
+    "taxAmount":        "消費税額（数値）",
+    "currency":         "通貨コード（例: JPY）",
+    "bankName":         "振込先金融機関名",
+    "bankBranch":       "振込先支店名",
+    "accountType":      "口座種別（普通／当座）",
+    "accountNumber":    "口座番号",
+    "accountHolder":    "口座名義",
+    "lineItems": [
+      {
+        "description": "品目・摘要",
+        "quantity":    "数量（数値）",
+        "unitPrice":   "単価（数値）",
+        "amount":      "金額（数値）"
+      }
+    ]
+  }
+}
+```</pre>
+    </div>
+
+    <div class="note-box success">
+      <span class="note-icon">✨</span>
+      <p><strong>ポイント：JSON サンプルを使って指示する</strong><br>
+      抽出してほしい構造を JSON サンプルとしてプロンプト内に記述すると、AI が出力する JSON のキー名・型・構造を確実に制御できます。値部分を日本語の説明にしておくと、何を読み取ればよいかが AI に伝わりやすくなります。</p>
+    </div>
+
+    <!-- 1-4 出力例 -->
+    <h3><span class="step-badge">4</span>カスタマイズ後の出力 JSON 例</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+      上記のプロンプトを設定した場合、AI は次のような JSON を出力します。この内容がそのまま DB の <code>DocumentData</code> 列に格納されます。
+    </p>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;AI 出力例（Invoice クラスにカスタムフィールドを追加した場合）
+      </div>
+      <pre>{
+  <span class="cn">"documentClassId"</span>: <span class="cs">"Invoice"</span>,
+  <span class="cn">"confidence"</span>: <span class="cs">0.97</span>,
+  <span class="cn">"fax_properties"</span>: { <span class="ck">... </span>},
+  <span class="cn">"content_properties"</span>: {
+    <span class="cn">"title"</span>: <span class="cs">"御請求書"</span>,
+    <span class="cn">"senderName"</span>: <span class="cs">"XX 商事株式会社"</span>,
+    <span class="cn">"timestamp"</span>: <span class="cs">"2026-02-10T00:00:00"</span>
+    <span class="ck">...</span>
+  },
+  <span class="cn">"typed_properties"</span>: {
+    <span class="cn">"invoiceNumber"</span>:  <span class="cs">"INV-2026-0042"</span>,
+    <span class="cn">"invoiceDate"</span>:    <span class="cs">"2026-02-10"</span>,
+    <span class="cn">"dueDate"</span>:        <span class="cs">"2026-02-28"</span>,
+    <span class="cn">"totalAmount"</span>:    <span class="cs">110000</span>,
+    <span class="cn">"taxAmount"</span>:      <span class="cs">10000</span>,
+    <span class="cn">"currency"</span>:       <span class="cs">"JPY"</span>,
+    <span class="cn">"bankName"</span>:       <span class="cs">"〇〇銀行"</span>,
+    <span class="cn">"bankBranch"</span>:     <span class="cs">"渋谷支店"</span>,
+    <span class="cn">"accountType"</span>:    <span class="cs">"普通"</span>,
+    <span class="cn">"accountNumber"</span>:  <span class="cs">"1234567"</span>,
+    <span class="cn">"accountHolder"</span>:  <span class="cs">"ﾖｷﾝｿﾌﾄ"</span>,
+    <span class="cn">"lineItems"</span>: [
+      { <span class="cn">"description"</span>: <span class="cs">"システム保守費"</span>, <span class="cn">"quantity"</span>: <span class="cs">1</span>, <span class="cn">"unitPrice"</span>: <span class="cs">100000</span>, <span class="cn">"amount"</span>: <span class="cs">100000</span> }
+    ]
+  },
+  <span class="cn">"notes"</span>: <span class="cs">""</span>
+}</pre>
+    </div>
+
+    
+  </section>
+
+
+  <!-- ============================================================
+       SECTION 2 : PLUGIN HANDLER
+       ============================================================ -->
+  <section id="plugin">
+    <span class="section-label">Customization 02</span>
+    <h2>plugins フォルダへのカスタムハンドラの実装</h2>
+    <p class="section-intro">
+      <code>plugins/</code> フォルダに特定の命名規則でPythonファイルを置くと、該当する文書種別のファイルが正常に処理された直後に自動で呼び出されます。
+      外部システムへの転送・メール通知・連携 API 呼び出しなど、業務固有の後処理を自由にプログラムできます。
+    </p>
+
+    <!-- 2-1 ファイルの命名規則 -->
+    <h3><span class="step-badge">1</span>ファイルの命名規則と配置場所</h3>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;プロジェクト構成（plugins フォルダ）
+      </div>
+      <pre>YokinsPaperless/
+ ├── monitor/
+ │    └── monitor.py
+ └── plugins/                           <span class="ck">← ここにハンドラを配置</span>
+      ├── docClassHandler_Invoice.py    <span class="ck">← DocumentClassID が "Invoice" の場合に呼び出される</span>
+      ├── docClassHandler_OrderForm.py  <span class="ck">← DocumentClassID が "OrderForm" の場合に呼び出される</span>
+      └── docClassHandler_Notice.py     <span class="ck">← DocumentClassID が "Notice" の場合に呼び出される</span></pre>
+    </div>
+
+    <ul class="detail-list">
+      <li>ファイル名は必ず <code>docClassHandler_&lt;DocumentClassID&gt;.py</code> とする</li>
+      <li><code>&lt;DocumentClassID&gt;</code> の部分は管理画面で設定した DocumentClassID と完全一致（大文字・小文字含む）させる</li>
+      <li>分類不能（<code>documentClassId: null</code>）な文書にはハンドラは呼び出されない</li>
+      <li>ハンドラが存在しない DocumentClass でもシステムは通常通り動作する</li>
+    </ul>
+
+    <!-- 2-2 handle_document 関数の実装 -->
+    <h3><span class="step-badge">2</span><code>handle_document(document)</code> 関数を実装する</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+      ハンドラファイルには <code>handle_document(document)</code> という関数を定義します。
+      引数 <code>document</code> は <code>Documents</code> テーブルの1行を <code>dict</code> として渡したものです。
+    </p>
+
+    <div class="code-wrap">
+      <div class="code-label">
+        <span class="code-label-dot" style="background:#ff5f57;"></span>
+        <span class="code-label-dot" style="background:#febc2e;"></span>
+        <span class="code-label-dot" style="background:#28c840;"></span>
+        &nbsp;plugins/docClassHandler_Invoice.py — 最小構成
+      </div>
+      <pre><span class="cp">def</span> <span class="cf">handle_document</span>(document):
+    <span class="ck">"""
+    document: Documents テーブルの1行を表す dict
+    正常処理が完了した直後に呼び出される。
+    戻り値は無視される。例外をスローしてもシステムに影響しない。
+    """</span>
+    <span class="cp">pass</span></pre>
+    </div>
+
+    <!-- 2-3 document の内容 -->
+    <h3><span class="step-badge">3</span>引数 <code>document</code> の内容</h3>
+    <p style="font-size:.9rem;color:var(--text-muted);line-height:1.8;margin-bottom:.5rem;">
+      <code>document</code> は以下のキーを持つ辞書です。<code>DocumentData</code> の値は JSON 文字列なので、<code>json.loads()</code> でパースして使います。
+    </p>
+
+    <table class="field-table">
+      <thead><tr><th>キー</th><th>型</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>ID</code></td><td>str</td><td class="muted">文書 UUID</td></tr>
+        <tr><td><code>Active</code></td><td>int</td><td class="muted">有効フラグ（1 = 有効）</td></tr>
+        <tr><td><code>SourcePath</code></td><td>str</td><td class="muted">元の FAX ファイルの絶対パス</td></tr>
+        <tr><td><code>DateCreated</code></td><td>str</td><td class="muted">DB 登録日時（ISO）</td></tr>
+        <tr><td><code>DateReceived</code></td><td>str</td><td class="muted">FAX 受信日時（ISO）</td></tr>
+        <tr><td><code>Title</code></td><td>str</td><td class="muted">AIが抽出したタイトル</td></tr>
+        <tr><td><code>Sender</code></td><td>str</td><td class="muted">送信者名</td></tr>
+        <tr><td><code>SenderOrganization</code></td><td>str</td><td class="muted">送信者 FAX 番号</td></tr>
+        <tr><td><code>Recipient</code></td><td>str</td><td class="muted">受信者名</td></tr>
+        <tr><td><code>RecipientOrganization</code></td><td>str</td><td class="muted">受信者 FAX 番号</td></tr>
+        <tr><td><code>DocumentClassID</code></td><td>str</td><td class="muted">文書クラス ID（このハンドラを呼んだクラス）</td></tr>
+        <tr><td><code>DocumentData</code></td><td>str</td><td class="muted">AI 出力 JSON 全体の文字列（json.loads でパース）</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 2-4 実装例 -->
+    <h3><span class="step-badge">4</span>実装例</h3>
+
+    <div class="two-col">
+      <div>
+        <p style="font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.5rem;">例 1：ログファイルに書き出す</p>
+        <div class="code-wrap">
+          <div class="code-label">
+            <span class="code-label-dot" style="background:#28c840;"></span>
+            &nbsp;docClassHandler_Invoice.py
+          </div>
+          <pre><span class="cp">import</span> json, pathlib, datetime
+
+<span class="cp">def</span> <span class="cf">handle_document</span>(document):
+    data = json.loads(document[<span class="cs">"DocumentData"</span>] <span class="cp">or</span> <span class="cs">"{}"</span>)
+    tp   = data.get(<span class="cs">"typed_properties"</span>, {})
+
+    log_path = pathlib.Path(<span class="cs">"/var/log/paperless/invoice.log"</span>)
+    log_path.parent.mkdir(parents=<span class="cp">True</span>, exist_ok=<span class="cp">True</span>)
+
+    line = <span class="cs">f'[{datetime.datetime.now().isoformat()}] '</span> \
+           <span class="cs">f'id={document["ID"]} '</span> \
+           <span class="cs">f'no={tp.get("invoiceNumber")} '</span> \
+           <span class="cs">f'amount={tp.get("totalAmount")}\n'</span>
+
+    <span class="cp">with</span> log_path.open(<span class="cs">"a"</span>, encoding=<span class="cs">"utf-8"</span>) <span class="cp">as</span> f:
+        f.write(line)</pre>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.5rem;">例 2：メール通知を送る</p>
+        <div class="code-wrap">
+          <div class="code-label">
+            <span class="code-label-dot" style="background:#28c840;"></span>
+            &nbsp;docClassHandler_Invoice.py
+          </div>
+          <pre><span class="cp">import</span> json, smtplib
+<span class="cp">from</span> email.mime.text <span class="cp">import</span> MIMEText
+
+SMTP_HOST = <span class="cs">"localhost"</span>
+NOTIFY_TO = <span class="cs">"accounting@example.com"</span>
+
+<span class="cp">def</span> <span class="cf">handle_document</span>(document):
+    data = json.loads(document[<span class="cs">"DocumentData"</span>] <span class="cp">or</span> <span class="cs">"{}"</span>)
+    tp   = data.get(<span class="cs">"typed_properties"</span>, {})
+    amt  = tp.get(<span class="cs">"totalAmount"</span>, <span class="cs">"不明"</span>)
+    subj = <span class="cs">f'[請求書受信] {document["Sender"]} / {amt}円'</span>
+    body = (
+        <span class="cs">f'文書ID : {document["ID"]}\n'</span>
+        <span class="cs">f'受信日時: {document["DateReceived"]}\n'</span>
+        <span class="cs">f'送信者 : {document["Sender"]}\n'</span>
+        <span class="cs">f'金額   : {amt}\n'</span>
+        <span class="cs">f'ファイル: {document["SourcePath"]}\n'</span>
+    )
+    msg = MIMEText(body, <span class="cs">"plain"</span>, <span class="cs">"utf-8"</span>)
+    msg[<span class="cs">"Subject"</span>] = subj
+    msg[<span class="cs">"From"</span>]    = <span class="cs">"paperless@example.com"</span>
+    msg[<span class="cs">"To"</span>]      = NOTIFY_TO
+    <span class="cp">with</span> smtplib.SMTP(SMTP_HOST) <span class="cp">as</span> s:
+        s.send_message(msg)</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:1rem;">
+      <div>
+        <p style="font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.5rem;">例 3：外部 Web API へ POST する</p>
+        <div class="code-wrap">
+          <div class="code-label">
+            <span class="code-label-dot" style="background:#28c840;"></span>
+            &nbsp;docClassHandler_Invoice.py
+          </div>
+          <pre><span class="cp">import</span> json, urllib.request
+
+WEBHOOK_URL = <span class="cs">"https://erp.example.com/api/invoices"</span>
+API_TOKEN   = <span class="cs">"Bearer my-secret-token"</span>
+
+<span class="cp">def</span> <span class="cf">handle_document</span>(document):
+    data = json.loads(document[<span class="cs">"DocumentData"</span>] <span class="cp">or</span> <span class="cs">"{}"</span>)
+    tp   = data.get(<span class="cs">"typed_properties"</span>, {})
+
+    payload = {
+        <span class="cs">"source"</span>:        <span class="cs">"paperless"</span>,
+        <span class="cs">"documentId"</span>:    document[<span class="cs">"ID"</span>],
+        <span class="cs">"receivedAt"</span>:    document[<span class="cs">"DateReceived"</span>],
+        <span class="cs">"sender"</span>:        document[<span class="cs">"Sender"</span>],
+        <span class="cs">"invoiceNumber"</span>: tp.get(<span class="cs">"invoiceNumber"</span>),
+        <span class="cs">"totalAmount"</span>:   tp.get(<span class="cs">"totalAmount"</span>),
+        <span class="cs">"lineItems"</span>:     tp.get(<span class="cs">"lineItems"</span>, []),
+    }
+    body = json.dumps(payload, ensure_ascii=<span class="cp">False</span>).encode()
+    req  = urllib.request.Request(
+        WEBHOOK_URL, data=body,
+        headers={
+            <span class="cs">"Content-Type"</span>:  <span class="cs">"application/json"</span>,
+            <span class="cs">"Authorization"</span>: API_TOKEN,
+        },
+        method=<span class="cs">"POST"</span>,
+    )
+    <span class="cp">with</span> urllib.request.urlopen(req, timeout=<span class="cs">10</span>) <span class="cp">as</span> r:
+        print(<span class="cs">f"[plugin] ERP response: {r.status}"</span>)</pre>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.5rem;">例 4：元ファイルを別フォルダにコピーする</p>
+        <div class="code-wrap">
+          <div class="code-label">
+            <span class="code-label-dot" style="background:#28c840;"></span>
+            &nbsp;docClassHandler_Invoice.py
+          </div>
+          <pre><span class="cp">import</span> json, shutil, pathlib, datetime
+
+ARCHIVE_DIR = pathlib.Path(<span class="cs">"/mnt/nas/invoice-archive"</span>)
+
+<span class="cp">def</span> <span class="cf">handle_document</span>(document):
+    data = json.loads(document[<span class="cs">"DocumentData"</span>] <span class="cp">or</span> <span class="cs">"{}"</span>)
+    tp   = data.get(<span class="cs">"typed_properties"</span>, {})
+
+    yyyymm = datetime.datetime.now().strftime(<span class="cs">"%Y%m"</span>)
+    dst_dir = ARCHIVE_DIR / yyyymm
+    dst_dir.mkdir(parents=<span class="cp">True</span>, exist_ok=<span class="cp">True</span>)
+
+    src = pathlib.Path(document[<span class="cs">"SourcePath"</span>])
+    inv_no = tp.get(<span class="cs">"invoiceNumber"</span>) <span class="cp">or</span> document[<span class="cs">"ID"</span>][:8]
+    dst = dst_dir / <span class="cs">f"INV_{inv_no}_{src.name}"</span>
+
+    shutil.copy2(src, dst)
+    print(<span class="cs">f"[plugin] copied to {dst}"</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-5 注意事項 -->
+    <h3><span class="step-badge">5</span>動作の仕様と注意事項</h3>
+
+    <ul class="detail-list">
+      <li>ハンドラはファイルが正常に分類・DB 登録された <strong>直後</strong>に同一スレッドで呼び出される</li>
+      <li>ハンドラの実行中、次のファイル処理は待機状態になる（長時間処理は非同期で実行すること）</li>
+      <li>ハンドラ内で例外が発生してもシステム側でキャッチされ、エラーログに記録されるだけで <strong>文書の登録自体には影響しない</strong></li>
+      <li>ハンドラファイルは呼び出しのたびに都度ロードされる（サービス再起動不要でコード変更が反映される）</li>
+      <li>ハンドラから DB（SQLite）に直接アクセスすることも可能だが、<code>SourcePath</code> のファイルは移動・削除しないこと</li>
+    </ul>
+
+    <div class="note-box">
+      <span class="note-icon">⚠️</span>
+      <p><strong>長時間かかる処理はスレッドに逃がす：</strong>
+      ハンドラは同期的に呼ばれるため、外部 API やメール送信など時間がかかる処理はハンドラ内で <code>threading.Thread</code> を使って非同期実行するか、タイムアウトを短めに設定してください。</p>
+    </div>
+
+    <div class="note-box info">
+      <span class="note-icon">ℹ️</span>
+      <p><strong>環境変数の利用：</strong>
+      SMTP ホスト名・API エンドポイント・認証トークンなどは、プロジェクトルートの <code>.env</code> ファイルに書いておくと、ハンドラ内から <code>os.getenv()</code> で取得できます。ソースコードへの直書きは避けてください。</p>
+    </div>
+  </section>
+
+  <div class="page-nav">
+    <a href="features.html">← 機能詳細に戻る</a>
+    <a href="specs.html">技術仕様を見る →</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-brand">Yokinsoft <span>Paperless</span> for FAX</div>
+  <div class="footer-links">
+    <a href="index.html">ホーム</a>
+    <a href="features.html">機能詳細</a>
+    <a href="comparison.html">比較</a>
+    <a href="requirements.html">動作環境</a>
+    <a href="specs.html">技術仕様</a>
+    <a href="integration.html">連携・カスタマイズ</a>
+  </div>
+  <p>&copy; Yokinsoft. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

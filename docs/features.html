@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>機能詳細 | Yokinsoft Paperless for FAX</title>
+  <meta name="description" content="Yokinsoft Paperless for FAX の機能を詳しく解説します。FAX自動受信・AI分類・文書検索・ユーザー管理など。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #0057ff; --primary-dark: #003fd4; --primary-light: #e8f0ff;
+      --accent: #00c896; --accent-dark: #009f77;
+      --dark: #0a0f1e; --dark-2: #131929;
+      --text: #1a2035; --text-muted: #5a6480;
+      --border: #e4e8f0; --white: #ffffff;
+      --gradient-hero: linear-gradient(135deg, #0a0f1e 0%, #0d1f4a 50%, #0a2a6e 100%);
+      --gradient-accent: linear-gradient(135deg, #0057ff, #00c896);
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.07);
+      --shadow-hover: 0 16px 48px rgba(0,87,255,0.14);
+      --radius: 16px; --radius-sm: 8px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP','Inter',sans-serif; color: var(--text); background: var(--white); line-height: 1.75; overflow-x: hidden; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(10,15,30,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-brand { display: flex; align-items: baseline; gap: .4rem; text-decoration: none; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
+    .nav-brand .accent { color: var(--accent); }
+    .nav-badge { font-size: .65rem; font-weight: 500; background: rgba(0,200,150,.2); color: var(--accent); border: 1px solid rgba(0,200,150,.3); border-radius: 4px; padding: 1px 6px; }
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+    .nav-links a { color: rgba(255,255,255,.7); text-decoration: none; font-size: .875rem; transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    @media (max-width: 640px) { .nav-links { display: none; } }
+
+    /* PAGE HERO */
+    .page-hero {
+      padding: 120px 5% 64px;
+      background: var(--gradient-hero);
+      text-align: center;
+    }
+    .breadcrumb { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-bottom: 1.5rem; font-size: .8rem; color: rgba(255,255,255,.45); }
+    .breadcrumb a { color: rgba(255,255,255,.45); text-decoration: none; }
+    .breadcrumb a:hover { color: rgba(255,255,255,.8); }
+    .breadcrumb span { color: rgba(255,255,255,.6); }
+    .page-label { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .8rem; }
+    .page-hero h1 { font-size: clamp(1.8rem,5vw,3rem); font-weight: 900; color: #fff; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 1rem; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,.65); max-width: 520px; margin: 0 auto; }
+
+    /* CONTENT */
+    .content { max-width: 1100px; margin: 0 auto; padding: 0 5%; }
+    section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+    section:last-child { border-bottom: none; }
+
+    .section-label { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: .6rem; }
+    h2 { font-size: clamp(1.4rem,3.5vw,2rem); font-weight: 900; color: var(--dark); letter-spacing: -.03em; line-height: 1.25; margin-bottom: .8rem; }
+    .section-intro { font-size: .95rem; color: var(--text-muted); max-width: 620px; margin-bottom: 2.5rem; line-height: 1.8; }
+
+    /* FEATURE BLOCK */
+    .feature-block {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;
+      margin-bottom: 3rem;
+    }
+    .feature-block.reverse { direction: rtl; }
+    .feature-block.reverse > * { direction: ltr; }
+    @media (max-width: 768px) { .feature-block, .feature-block.reverse { grid-template-columns: 1fr; direction: ltr; } }
+    .feature-block h3 { font-size: 1.2rem; font-weight: 700; color: var(--dark); margin-bottom: .8rem; display: flex; align-items: center; gap: .6rem; }
+    .feature-num-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--gradient-accent); color: #fff;
+      font-size: .7rem; font-weight: 900; flex-shrink: 0;
+    }
+    .feature-block p { font-size: .9rem; color: var(--text-muted); line-height: 1.8; margin-bottom: 1rem; }
+    .detail-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .detail-list li { display: flex; align-items: flex-start; gap: .6rem; font-size: .875rem; color: var(--text); }
+    .detail-list li::before { content: '▸'; color: var(--accent); font-size: .75rem; flex-shrink: 0; margin-top: .3rem; }
+
+    .feature-visual {
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f9f4 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      min-height: 180px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .mockup-bar { height: 8px; border-radius: 4px; margin-bottom: .6rem; }
+    .mockup-bar.w-full { width: 100%; background: #c7d8ff; }
+    .mockup-bar.w-3q { width: 75%; background: #a5c4ff; }
+    .mockup-bar.w-half { width: 50%; background: #d6f4ec; }
+    .mockup-bar.w-2q { width: 60%; background: #b8eedf; }
+    .mockup-row { display: flex; gap: .5rem; margin-bottom: .6rem; align-items: center; }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .mockup-dot.green { background: var(--accent); }
+    .mockup-dot.blue { background: var(--primary); }
+    .mockup-dot.gray { background: #ccc; }
+    .mockup-label { font-size: .7rem; color: var(--text-muted); }
+    .mockup-table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+    .mockup-table th { background: #e8f0ff; color: var(--primary); padding: 4px 8px; text-align: left; font-weight: 700; }
+    .mockup-table td { padding: 4px 8px; border-bottom: 1px solid #eef; color: var(--text-muted); }
+    .tag-pill { display: inline-block; font-size: .65rem; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+    .tag-pill.green { background: #dcfce7; color: #16a34a; }
+    .tag-pill.blue { background: #dbeafe; color: #1d4ed8; }
+    .tag-pill.orange { background: #fef3c7; color: #d97706; }
+
+    /* NOTE BOX */
+    .note-box {
+      display: flex; gap: .8rem; align-items: flex-start;
+      background: #fffbeb; border: 1px solid #f59e0b; border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem; margin-top: 1.5rem;
+    }
+    .note-box.info { background: #eff6ff; border-color: #3b82f6; }
+    .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .note-box p { font-size: .82rem; color: var(--text); line-height: 1.7; margin: 0; }
+    .note-box strong { color: #92400e; }
+    .note-box.info strong { color: #1e40af; }
+
+    /* FOOTER */
+    footer { background: var(--dark-2); color: rgba(255,255,255,.45); padding: 3rem 5%; text-align: center; font-size: .82rem; }
+    footer .footer-brand { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: .5rem; }
+    footer .footer-brand span { color: var(--accent); }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,.7); }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+    .page-nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; flex-wrap: wrap; gap: 1rem; }
+    .page-nav a { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; color: var(--primary); text-decoration: none; font-weight: 600; }
+    .page-nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Yokinsoft <span class="accent">Paperless</span><span class="nav-badge">for FAX</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">ホーム</a></li>
+    <li><a href="features.html" class="active">機能詳細</a></li>
+    <li><a href="comparison.html">他製品との比較</a></li>
+    <li><a href="requirements.html">動作環境・前提条件</a></li>
+    <li><a href="specs.html">技術仕様</a></li>
+    <li><a href="integration.html">連携・カスタマイズ</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <div class="breadcrumb">
+    <a href="index.html">ホーム</a>
+    <span>›</span>
+    <span>機能詳細</span>
+  </div>
+  <div class="page-label">Features</div>
+  <h1>機能詳細</h1>
+  <p>各機能の働きと、どのような場面で役立つかをくわしく説明します。</p>
+</div>
+
+<div class="content">
+
+  <!-- 01 FAX自動受信・保存 -->
+  <section id="auto-receive">
+    <span class="section-label">Feature 01</span>
+    <h2>FAX自動受信・保存</h2>
+    <p class="section-intro">
+      FAX受信サーバーがファイルを保存した瞬間に処理を開始します。人が操作しなくても、届いたFAXはすべて自動的にシステムへ取り込まれます。
+    </p>
+    <div class="feature-block">
+      <div>
+        <h3><span class="feature-num-badge">01</span>フォルダ監視による自動検知</h3>
+        <p>
+          FAX受信サーバーが保存する受信フォルダを常時監視しています。新しいファイルを検知すると即座に処理キューへ登録し、AIによる解析を開始します。
+        </p>
+        <ul class="detail-list">
+          <li>監視対象フォルダは設定ファイルで自由に指定可能</li>
+          <li>対応ファイル形式：PDF、TIFF など主要な画像形式</li>
+          <li>複数ファイルが同時に届いた場合も順次処理</li>
+          <li>処理できなかったファイルは「キュー」に再試行として保持</li>
+        </ul>
+        <div class="note-box info">
+          <span class="note-icon">ℹ️</span>
+          <p>既存のFAX受信環境（IP-FAXサーバー、複合機の受信フォルダなど）をそのまま活用できます。FAX受信の仕組み自体は変更不要です。</p>
+        </div>
+      </div>
+      <div class="feature-visual">
+        <div class="mockup-row"><div class="mockup-dot green"></div><div class="mockup-label">監視中: /fax/inbox/</div></div>
+        <div class="mockup-bar w-full"></div>
+        <div style="font-size:.7rem;color:#5a6480;margin:4px 0 10px;">新規ファイル検知 → キュー登録</div>
+        <div class="mockup-row"><div class="mockup-dot blue"></div><div class="mockup-label">fax_20260219_001.pdf</div><span class="tag-pill green" style="margin-left:auto;">処理完了</span></div>
+        <div class="mockup-row"><div class="mockup-dot blue"></div><div class="mockup-label">fax_20260219_002.pdf</div><span class="tag-pill orange" style="margin-left:auto;">処理中</span></div>
+        <div class="mockup-row"><div class="mockup-dot gray"></div><div class="mockup-label">fax_20260219_003.pdf</div><span class="tag-pill blue" style="margin-left:auto;">待機中</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 AI自動分類 -->
+  <section id="ai-classify">
+    <span class="section-label">Feature 02</span>
+    <h2>AI自動分類</h2>
+    <p class="section-intro">
+      受信したFAX文書の内容をGoogle Gemini AIが読み取り、種類を自動で判断します。「請求書」「注文書」「通知書」など、あらかじめ設定した分類に自動で振り分けます。
+    </p>
+    <div class="feature-block reverse">
+      <div>
+        <h3><span class="feature-num-badge">02</span>生成AIによる内容理解と分類</h3>
+        <p>
+          文書全体の文脈を理解した上で分類するため、帳票フォーマットが異なっていても正確に種類を判断します。分類の根拠となる情報（タイトル・送信者・受信者・組織名など）も同時に抽出します。
+        </p>
+        <ul class="detail-list">
+          <li>使用AIエンジン：Google Gemini（生成AI）</li>
+          <li>FAX画像を解析のためGoogleのクラウドへ一時送信（解析後のデータは自社DBに保存）</li>
+          <li>抽出項目：タイトル・送信者名・送信元組織・受信者名・受信者組織・文書種別</li>
+          <li>分類の信頼度（confidence）もデータとして記録</li>
+          <li>分類ルールは管理画面から追加・変更・削除が可能</li>
+        </ul>        <div class="note-box" style="background:#e8f9f4;border-color:#00c896;margin-top:1rem;">
+          <span class="note-icon">✨</span>
+          <p><strong style="color:#007a5e;">画像の前処理が一切不要</strong><br>傍き補正・明るさ調整・ノイズ除去・フォーマット変換など、旧来OCRシステムで必須だった下処理設定はすべて不要です。生成AIが複合機出力の元画像をそのまま解釈するため、複合機からの出力をそのまま投入できます。</p>
+        </div>
+        <div class="note-box" style="margin-top:.75rem;">
+          <span class="note-icon">🎯</span>
+          <p><strong>AI仕分けプロンプトの調整が精度を左右する</strong><br>各文書種別に対して「どのような文書をどの種別に分類するか」を指示するAIプロンプトの赺りによって、自動分類の精度が大きく変わります。自社の帯票・文書種別に合わせたプロンプト調整が導入時の重要作業です。導入支援を利用する場合はこの調整作業もサポートします。</p>
+        </div>
+        <figure style="margin-top:1rem;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+          <img src="images/prompt-example-bills.png" alt="AIプロンプト設定例（請求書クラス）" style="width:100%;display:block;" loading="lazy" />
+          <figcaption style="font-size:.72rem;color:var(--text-muted);padding:.5rem .8rem;background:#f8f9fc;border-top:1px solid var(--border);">AIプロンプト設定例（請求書クラス）</figcaption>
+        </figure>
+        <div class="note-box">
+          <span class="note-icon">⚠️</span>
+          <p><strong>セキュリティに関する注意：</strong>FAX文書の内容はAI解析のためにGoogleのサーバーへ送信されます。機密文書を扱う環境では、組織の情報セキュリティポリシーに照らしてご判断ください。</p>
+        </div>
+      </div>
+      <div class="feature-visual" style="padding:0;overflow:hidden;min-height:auto;">
+        <img src="images/data-extraction-sample-bills.png" alt="AI自動分類・データ抽出結果（請求書）" style="width:100%;display:block;border-radius:var(--radius);" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 文書一覧・検索 -->
+  <section id="search">
+    <span class="section-label">Feature 03</span>
+    <h2>文書一覧・検索</h2>
+    <p class="section-intro">
+      登録されたすべての文書をブラウザ上で一覧表示し、複数の条件で絞り込み検索できます。必要な文書をすばやく見つけられます。
+    </p>
+    <div class="feature-block">
+      <div>
+        <h3><span class="feature-num-badge">03</span>多条件絞り込み検索</h3>
+        <p>
+          受信日時・文書種別・送信者名・組織名・受信者名など、AIが抽出した情報をすべて検索条件として使えます。
+        </p>
+        <ul class="detail-list">
+          <li>受信日の期間指定（開始日〜終了日）</li>
+          <li>文書種別（分類）での絞り込み</li>
+          <li>送信者名・送信元組織・受信者名のテキスト検索</li>
+          <li>有効・無効（アーカイブ）ステータスでの絞り込み</li>
+          <li>検索結果のページング表示</li>
+          <li>一覧から文書詳細へワンクリックで遷移</li>
+        </ul>
+      </div>
+      <div class="feature-visual" style="padding:0;overflow:hidden;min-height:auto;">
+        <img src="images/list-page.png" alt="文書一覧・検索画面" style="width:100%;display:block;border-radius:var(--radius);" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 文書詳細表示 -->
+  <section id="detail">
+    <span class="section-label">Feature 04</span>
+    <h2>文書詳細表示</h2>
+    <p class="section-intro">
+      AIが読み取った情報と原本ファイルへのリンクを一画面で確認できます。文書の内容をすぐに把握でき、原本確認もスムーズです。
+    </p>
+    <div class="feature-block reverse">
+      <div>
+        <h3><span class="feature-num-badge">04</span>抽出情報と原本を並べて確認</h3>
+        <p>
+          文書詳細ページでは、AIが抽出した構造化データ（タイトル・送信者・日時・種別など）と、原本の画像ファイル（PDF）を同一画面で確認できます。
+        </p>
+        <ul class="detail-list">
+          <li>AIによる抽出データを整形して表示</li>
+          <li>原本ファイルへの直接リンク（PDFビューアで開く）</li>
+          <li>文書の有効化・無効化（論理削除）が可能</li>
+          <li>文書に関連するデータ（AIの分類根拠など）を JSON 形式で確認可能</li>
+        </ul>
+        <figure style="margin-top:1.25rem;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+          <img src="images/data-extraction-sample-bills-json.png" alt="AIデータ抽出結果のJSONビュー" style="width:100%;display:block;" loading="lazy" />
+          <figcaption style="font-size:.72rem;color:var(--text-muted);padding:.5rem .8rem;background:#f8f9fc;border-top:1px solid var(--border);">文書詳細画面のJSONデータビュー（API連携・後処理にも利用可能）</figcaption>
+        </figure>
+      </div>
+      <div class="feature-visual" style="padding:0;overflow:hidden;min-height:auto;">
+        <img src="images/details-page.png" alt="文書詳細画面" style="width:100%;display:block;border-radius:var(--radius);" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 ユーザー管理 -->
+  <section id="users">
+    <span class="section-label">Feature 05</span>
+    <h2>ユーザー管理・アクセス制御</h2>
+    <p class="section-intro">
+      複数のユーザーアカウントを作成し、管理者と一般ユーザーで権限を分けられます。設定変更は管理者のみが行えるため、誤操作のリスクを抑えた安全な運用が可能です。
+    </p>
+    <div class="feature-block">
+      <div>
+        <h3><span class="feature-num-badge">05</span>管理者権限と一般ユーザー権限</h3>
+        <p>
+          管理者は文書クラスの追加・変更・削除やユーザー管理など、システム設定全般を操作できます。一般ユーザーは文書の閲覧・検索のみに限定されます。
+        </p>
+        <ul class="detail-list">
+          <li>管理者：文書閲覧 / 文書クラス管理 / ユーザー管理 / APIキー管理</li>
+          <li>一般ユーザー：文書閲覧・検索のみ</li>
+          <li>パスワードはハッシュ化して保存（平文保存なし）</li>
+          <li>ユーザー単位での有効化・無効化</li>
+          <li>APIキー認証にも対応（外部システム連携時）</li>
+        </ul>
+      </div>
+      <div class="feature-visual" style="padding:0;overflow:hidden;min-height:auto;">
+        <img src="images/admin-users.png" alt="ユーザー管理画面" style="width:100%;display:block;border-radius:var(--radius);" loading="lazy" />
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.5rem;">
+      <figure style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <img src="images/login-page.png" alt="ログイン画面" style="width:100%;display:block;" loading="lazy" />
+        <figcaption style="font-size:.72rem;color:var(--text-muted);padding:.5rem .8rem;background:#f8f9fc;border-top:1px solid var(--border);">ログイン画面</figcaption>
+      </figure>
+      <figure style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <img src="images/admin-apikeys.png" alt="APIキー管理画面" style="width:100%;display:block;" loading="lazy" />
+        <figcaption style="font-size:.72rem;color:var(--text-muted);padding:.5rem .8rem;background:#f8f9fc;border-top:1px solid var(--border);">APIキー管理画面（外部システム連携・後処理スクリプト用）</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 06 文書クラス管理 -->
+  <section id="classes">
+    <span class="section-label">Feature 06</span>
+    <h2>文書クラス（分類）管理</h2>
+    <p class="section-intro">
+      AIがどの種類の文書をどのように認識するかを、管理画面から設定・カスタマイズできます。業種や業務に合わせた独自の分類体系を構築できます。
+    </p>
+    <div class="feature-block reverse">
+      <div>
+        <h3><span class="feature-num-badge">06</span>分類ルールを自由に設定</h3>
+        <p>
+          文書クラスとは「請求書」「注文書」「通知書」などのカテゴリのことです。管理者はこれらを自由に追加・変更でき、業種や部門に応じた独自の分類体系を作れます。
+        </p>
+        <ul class="detail-list">
+          <li>文書クラスの追加・編集・削除（管理者のみ）</li>
+          <li>各クラスに対してAIへの「分類プロンプト」を個別設定可能</li>
+          <li>表示優先度（Priority）で一覧の並び順を制御</li>
+          <li>クラス単位の有効化・無効化（無効クラスはAI対象外）</li>
+          <li>初期状態で「請求書」「注文書」「通知書」のサンプルを搭載</li>
+        </ul>
+        <div class="note-box info">
+          <span class="note-icon">ℹ️</span>
+          <p><strong>カスタマイズ例：</strong>「伝票」「見積書」「申込書」「契約書」など、自社業務で扱うすべての文書種別を登録できます。</p>
+        </div>
+      </div>
+      <div class="feature-visual" style="padding:0;overflow:hidden;min-height:auto;">
+        <img src="images/admin-documentclass.png" alt="文書クラス（分類）管理画面" style="width:100%;display:block;border-radius:var(--radius);" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <div class="page-nav">
+    <a href="index.html">← ホームに戻る</a>
+    <a href="integration.html">連携・カスタマイズを見る →</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-brand">Yokinsoft <span>Paperless</span> for FAX</div>
+  <div class="footer-links">
+    <a href="index.html">ホーム</a>
+    <a href="features.html">機能詳細</a>
+    <a href="comparison.html">比較</a>
+    <a href="requirements.html">動作環境</a>
+    <a href="specs.html">技術仕様</a>
+    <a href="integration.html">連携・カスタマイズ</a>
+  </div>
+  <p>&copy; Yokinsoft. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Yokinsoft Paperless for FAX Web Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yokinsoft/yokinsoftpaperless/web
+ExecStart=/home/yokinsoft/yokinsoftpaperless/.venv/bin/python /usr/bin/npm run start
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

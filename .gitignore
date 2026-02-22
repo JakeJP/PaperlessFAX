@@ -1,0 +1,12 @@
+data/*.db
+data/*.db-wal
+data/*.db-shm
+__pycache__/
+*.pyc
+.env
+dist/
+node_modules/
+.vscode/*
+
+
+

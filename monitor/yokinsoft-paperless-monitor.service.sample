@@ -1,0 +1,16 @@
+[Unit]
+Description=Yokinsoft Paperless for FAX Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yokinsoft/yokinsoftpaperless/monitor
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/home/yokinsoft/yokinsoftpaperless/monitor/.venv/bin/python /home/yokinsoft/yokinsoftpaperless/monitor/monitor.py --as-service
+Restart=always
+RestartSec=5
+User=yo-ki
+Group=yo-ki
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>動作環境・前提条件 | Yokinsoft Paperless for FAX</title>
+  <meta name="description" content="Yokinsoft Paperless for FAXの動作環境、必要なソフトウェア、FAX受信環境、Google Gemini APIキーの準備について説明します。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #0057ff; --primary-dark: #003fd4; --primary-light: #e8f0ff;
+      --accent: #00c896; --accent-dark: #009f77;
+      --dark: #0a0f1e; --dark-2: #131929;
+      --text: #1a2035; --text-muted: #5a6480;
+      --border: #e4e8f0; --white: #ffffff;
+      --gradient-hero: linear-gradient(135deg, #0a0f1e 0%, #0d1f4a 50%, #0a2a6e 100%);
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.07);
+      --radius: 16px; --radius-sm: 8px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP','Inter',sans-serif; color: var(--text); background: var(--white); line-height: 1.75; overflow-x: hidden; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(10,15,30,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-brand { display: flex; align-items: baseline; gap: .4rem; text-decoration: none; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
+    .nav-brand .accent { color: var(--accent); }
+    .nav-badge { font-size: .65rem; font-weight: 500; background: rgba(0,200,150,.2); color: var(--accent); border: 1px solid rgba(0,200,150,.3); border-radius: 4px; padding: 1px 6px; }
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+    .nav-links a { color: rgba(255,255,255,.7); text-decoration: none; font-size: .875rem; transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    @media (max-width: 640px) { .nav-links { display: none; } }
+
+    .page-hero { padding: 120px 5% 64px; background: var(--gradient-hero); text-align: center; }
+    .breadcrumb { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-bottom: 1.5rem; font-size: .8rem; color: rgba(255,255,255,.45); }
+    .breadcrumb a { color: rgba(255,255,255,.45); text-decoration: none; }
+    .breadcrumb a:hover { color: rgba(255,255,255,.8); }
+    .breadcrumb span { color: rgba(255,255,255,.6); }
+    .page-label { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .8rem; }
+    .page-hero h1 { font-size: clamp(1.8rem,5vw,3rem); font-weight: 900; color: #fff; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 1rem; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,.65); max-width: 560px; margin: 0 auto; }
+
+    .content { max-width: 960px; margin: 0 auto; padding: 0 5%; }
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .section-label { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: .6rem; }
+    h2 { font-size: clamp(1.4rem,3.5vw,2rem); font-weight: 900; color: var(--dark); letter-spacing: -.03em; line-height: 1.25; margin-bottom: .8rem; }
+    h3 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: .75rem; }
+    .section-intro { font-size: .95rem; color: var(--text-muted); max-width: 700px; margin-bottom: 2.5rem; line-height: 1.8; }
+
+    /* REQ TABLE */
+    .req-table { width: 100%; border-collapse: collapse; font-size: .875rem; margin-bottom: 1.5rem; }
+    .req-table th { text-align: left; padding: .7rem 1rem; background: var(--dark); color: #fff; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+    .req-table td { padding: .75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.65; }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table tr:nth-child(odd) td { background: #f8faff; }
+    .req-table tr:nth-child(even) td { background: #fff; }
+    .req-table td:first-child { font-weight: 600; color: var(--dark); width: 210px; }
+    .badge { display: inline-block; font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: .4rem; }
+    .badge.req { background: #fee2e2; color: #b91c1c; }
+    .badge.opt { background: #f0fdf4; color: #15803d; }
+    .badge.rec { background: var(--primary-light); color: var(--primary); }
+    code { font-family: 'SFMono-Regular','Consolas','Liberation Mono','Menlo',monospace; font-size: .82rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0f172a; }
+
+    /* STEP LIST */
+    .step-list { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 1.25rem; }
+    .step-list li { counter-increment: steps; display: flex; align-items: flex-start; gap: 1rem; }
+    .step-list li::before {
+      content: counter(steps); flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700; margin-top: .15rem;
+    }
+    .step-list li .step-body h4 { font-size: .92rem; font-weight: 700; color: var(--dark); margin-bottom: .2rem; }
+    .step-list li .step-body p { font-size: .83rem; color: var(--text-muted); line-height: 1.7; }
+
+    /* NOTE BOX */
+    .note-box {
+      display: flex; gap: .8rem; align-items: flex-start;
+      border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-top: 1.25rem;
+      font-size: .82rem; line-height: 1.7;
+    }
+    .note-box.warn { background: #fffbeb; border: 1px solid #f59e0b; }
+    .note-box.info { background: #eff6ff; border: 1px solid #3b82f6; }
+    .note-box.critical { background: #fef2f2; border: 1px solid #ef4444; }
+    .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .note-box p { margin: 0; color: var(--text); }
+    .note-box strong { color: #92400e; }
+    .note-box.info strong { color: #1e40af; }
+    .note-box.critical strong { color: #b91c1c; }
+
+    /* ARCH DIAGRAM */
+    .arch-diagram {
+      background: var(--dark); border-radius: var(--radius);
+      padding: 2.5rem; margin: 2rem 0;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+      color: #fff; font-size: .82rem;
+    }
+    .arch-row { display: flex; align-items: center; gap: .75rem; margin: .5rem 0; flex-wrap: wrap; justify-content: center; }
+    .arch-box {
+      border: 1px solid rgba(255,255,255,.2); border-radius: 8px;
+      padding: .5rem 1rem; text-align: center; min-width: 130px; line-height: 1.4;
+    }
+    .arch-box.server { border-color: var(--primary); background: rgba(0,87,255,.15); }
+    .arch-box.client { border-color: var(--accent); background: rgba(0,200,150,.1); }
+    .arch-box.cloud { border-color: #a78bfa; background: rgba(167,139,250,.1); }
+    .arch-box .box-label { font-size: .65rem; letter-spacing: .08em; color: rgba(255,255,255,.45); margin-bottom: .2rem; }
+    .arch-box .box-name { font-weight: 700; font-size: .88rem; color: #fff; }
+    .arch-arrow { color: rgba(255,255,255,.35); font-size: .9rem; }
+    .arch-connector { height: 24px; border-left: 1px dashed rgba(255,255,255,.2); }
+
+    /* CHECKLIST */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .checklist li { display: flex; align-items: flex-start; gap: .7rem; font-size: .88rem; color: var(--text); line-height: 1.6; }
+    .checklist li::before { content: '□'; font-size: 1rem; color: var(--primary); flex-shrink: 0; margin-top: .05rem; }
+    .checklist li.done::before { content: '✔'; color: var(--accent); }
+
+    footer { background: var(--dark-2); color: rgba(255,255,255,.45); padding: 3rem 5%; text-align: center; font-size: .82rem; }
+    footer .footer-brand { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: .5rem; }
+    footer .footer-brand span { color: var(--accent); }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,.7); }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+    .page-nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; flex-wrap: wrap; gap: 1rem; }
+    .page-nav a { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; color: var(--primary); text-decoration: none; font-weight: 600; }
+    .page-nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Yokinsoft <span class="accent">Paperless</span><span class="nav-badge">for FAX</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">ホーム</a></li>
+    <li><a href="features.html">機能詳細</a></li>
+    <li><a href="comparison.html">他製品との比較</a></li>
+    <li><a href="requirements.html" class="active">動作環境・前提条件</a></li>
+    <li><a href="specs.html">技術仕様</a></li>
+    <li><a href="integration.html">連携・カスタマイズ</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <div class="breadcrumb">
+    <a href="index.html">ホーム</a><span>›</span><span>動作環境・前提条件</span>
+  </div>
+  <div class="page-label">Requirements</div>
+  <h1>動作環境・前提条件</h1>
+  <p>導入前に確認すべきサーバー環境、FAX受信環境、APIキー取得について説明します。</p>
+</div>
+
+<div class="content">
+
+  <!-- システム構成概要 -->
+  <section id="architecture">
+    <span class="section-label">システム全体像</span>
+    <h2>構成の概要</h2>
+    <p class="section-intro">
+      Yokinsoft Paperlessは、自社サーバーにインストールして運用するオンプレミス型のシステムです。クラウドサービスへの登録は不要ですが、AI分類にGoogle Gemini APIを使用するためインターネット接続が必要です。
+    </p>
+    <div class="arch-diagram">
+      <div class="arch-row">
+        <div class="arch-box client">
+          <div class="box-label">社内 PC ／ スマートフォン</div>
+          <div class="box-name">ブラウザ</div>
+        </div>
+        <span class="arch-arrow">⟵ LAN ⟶</span>
+        <div class="arch-box server">
+          <div class="box-label">自社サーバー</div>
+          <div class="box-name">Node.js + Python<br>SQLite</div>
+        </div>
+        <span class="arch-arrow">⟶ インターネット</span>
+        <div class="arch-box cloud">
+          <div class="box-label">AI解析のみ</div>
+          <div class="box-name">Google Gemini<br>API</div>
+        </div>
+      </div>
+    </div>
+    <div class="note-box warn">
+      <span class="note-icon">⚠️</span>
+      <p><strong>注意：</strong>文書はAI解析時にGoogle Gemini APIへ一時的に送信されます。解析完了後のデータは自社サーバーのSQLiteデータベースにのみ保管されます。社内規定に照らして利用可否をご確認ください。</p>
+    </div>
+  </section>
+
+  <!-- サーバー環境 -->
+  <section id="server">
+    <span class="section-label">サーバー要件</span>
+    <h2>サーバー動作環境</h2>
+    <p class="section-intro">
+      本システムはLinuxおよびWindowsの両環境で動作します。いずれのOSでも、Python・Node.jsが動作する環境であれば稼働可能です。
+    </p>
+    <table class="req-table">
+      <thead><tr><th>項目</th><th>要件</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>OS</td>
+          <td>
+            Linux（Ubuntu 20.04 LTS 以降推奨） <span class="badge rec">推奨</span><br>
+            Windows 10 / 11 または Windows Server 2019 以降 <span class="badge opt">対応</span><br>
+            <span style="font-size:.8rem;color:var(--text-muted);">Linux・Windows ともに動作確認済みです。サービス常駐にはLinuxのsystemdまたはWindowsのサービス登録を使用します</span>
+          </td>
+        </tr>
+        <tr>
+          <td>Python</td>
+          <td><code>3.10</code> 以上 <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">ファイル監視 (monitor) および DB初期化スクリプトで使用</span></td>
+        </tr>
+        <tr>
+          <td>Node.js</td>
+          <td><code>18.x</code> 以上 <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">WebアプリケーションサーバーおよびAPIサーバーで使用</span></td>
+        </tr>
+        <tr>
+          <td>データベース</td>
+          <td>SQLite（追加インストール不要） <span class="badge rec">自動</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">better-sqlite3 経由でNode.jsから使用。外部DBサーバー不要</span></td>
+        </tr>
+        <tr>
+          <td>ディスク空き容量</td>
+          <td>FAX受信量に応じて確保 <span class="badge rec">推奨</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">A4 FAX 1枚あたりおよそ100〜300KB。月1,000件受信で約300MB/月を目安にしてください</span></td>
+        </tr>
+        <tr>
+          <td>メモリ</td>
+          <td>2GB 以上推奨 <span class="badge rec">推奨</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">Node.js + Python が常時稼働するため最低1GB、2GB以上を推奨します</span></td>
+        </tr>
+        <tr>
+          <td>ネットワーク</td>
+          <td>社内LAN接続 + インターネット接続 <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">ブラウザからのアクセスに社内LAN、AI解析のためインターネット接続が必要</span></td>
+        </tr>
+        <tr>
+          <td>ポート</td>
+          <td>デフォルト <code>3000</code>（設定変更可） <span class="badge opt">変更可</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">社内ファイアウォールでサーバー:ポートへのアクセスを許可してください</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- FAX受信環境 -->
+  <section id="fax">
+    <span class="section-label">FAX受信環境</span>
+    <h2>FAX受信環境の前提条件</h2>
+    <p class="section-intro">
+      本システムはFAX受信そのものは行いません。既存のFAX機器・サーバーが受信したファイルをフォルダに保存する機能を利用して連携します。
+    </p>
+    <table class="req-table">
+      <thead><tr><th>項目</th><th>要件</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>FAX機器・サーバー</td>
+          <td>IP-FAXサーバー または FAXサーバーソフトウェア <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">受信したFAXをファイルとして保存できるものが必要です</span></td>
+        </tr>
+        <tr>
+          <td>保存形式</td>
+          <td>PDF または TIFF <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">受信FAXをPDFもしくはTIFF形式でサーバー上のフォルダに保存する設定が必要です</span></td>
+        </tr>
+        <tr>
+          <td>保存先フォルダ</td>
+          <td>Paperlessサーバーからアクセス可能なローカルパス <span class="badge req">必須</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">Pythonモニター（watchdog）がフォルダを監視します。マウント方式によって動作の安定性が異なります：</span>
+          <ul style="font-size:.8rem;color:var(--text-muted);margin:.5rem 0 .25rem 1.2rem;line-height:1.8;">
+            <li><strong style="color:var(--dark);">ローカルフォルダ</strong>：最も安定。OS問わず推奨</li>
+            <li><strong style="color:var(--dark);">Windows ファイル共有（SMB）マウント</strong>：安定して動作します</li>
+            <li><strong style="color:var(--dark);">Samba マウント（Linux から SMB）</strong>：マウントオプション（<code>notify_flags</code>等）の設定が必要な場合があります</li>
+            <li><strong style="color:#b91c1c;">NFS マウント</strong>：watchdog によるファイル作成イベントが通知されないため<strong style="color:#b91c1c;">動作しません</strong></li>
+          </ul>
+          <span style="font-size:.8rem;color:var(--text-muted);">FAXファイル用ファイルサーバーと同一ホストにmonitorをインストールし、ローカルフォルダを直接監視する構成が最も安定します。Linux・Windows いずれの場合も、監視対象フォルダと同じマシンにmonitorを配置することを推奨します。</span>
+          </td>
+        </tr>
+        <tr>
+          <td>保存ファイル名の規則</td>
+          <td>日時・送信者情報を含む形式を推奨 <span class="badge opt">推奨</span><br>
+          <span style="font-size:.8rem;color:var(--text-muted);">ファイル名から受信日時・送信元番号を取得できる場合は自動抽出されます。取得できない場合はAI解析で補完されます</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note-box info">
+      <span class="note-icon">ℹ️</span>
+      <p><strong>確認のポイント：</strong>既存のFAXサーバーが「受信ファイルをフォルダに自動保存できるか」が導入の前提です。FAXサーバーの管理者にご確認ください。</p>
+    </div>
+  </section>
+
+  <!-- Google Gemini API -->
+  <section id="gemini">
+    <span class="section-label">AI解析の準備</span>
+    <h2>Google Gemini APIキーの取得</h2>
+    <p class="section-intro">
+      文書のAI自動分類にはGoogle Gemini APIを使用します。APIキーの取得と設定が必要です。
+    </p>
+    <div class="note-box critical">
+      <span class="note-icon">🔴</span>
+      <p><strong>重要：</strong>AI分類機能を使用する場合、受信したFAX文書の画像がGoogle Gemini APIに送信されます。社外秘・機密情報を含む文書が含まれる可能性がある場合は、社内ポリシーや情報セキュリティ規程を必ず確認した上で導入を判断してください。</p>
+    </div>
+    <br>
+    <h3>APIキー取得の手順</h3>
+    <ul class="step-list">
+      <li>
+        <div class="step-body">
+          <h4>Google AI Studio にアクセス</h4>
+          <p><a href="https://aistudio.google.com/" target="_blank" rel="noopener" style="color:var(--primary);">https://aistudio.google.com/</a> にアクセスし、Googleアカウントでサインインします。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>APIキーを作成</h4>
+          <p>画面左メニューの「Get API Key」→「Create API key」からAPIキーを生成します。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>利用規約・料金を確認</h4>
+          <p>Google Gemini APIには無償枠（Gemini 1.5 Flash等）があります。利用量によっては有償プランへの移行が必要になる場合があります。<a href="https://ai.google.dev/pricing" target="_blank" rel="noopener" style="color:var(--primary);">料金ページ</a>をご確認ください。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>システム設定ファイルに記述</h4>
+          <p>取得したAPIキーをサーバー側の設定ファイル（<code>.env</code> または <code>db_config.py</code>）に設定します。詳細はINSTALL_MONITORのセットアップ手順を参照してください。</p>
+        </div>
+      </li>
+    </ul>
+    <table class="req-table" style="margin-top:2rem;">
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>使用APIサービス</td>
+          <td>Google Gemini API（生成AI）</td>
+        </tr>
+        <tr>
+          <td>無償枠</td>
+          <td>Gemini 1.5 Flash：1日あたり一定リクエスト数まで無償<br><span style="font-size:.8rem;color:var(--text-muted);">無償枠の上限はGoogleの方針により変更されることがあります</span></td>
+        </tr>
+        <tr>
+          <td>送信データ</td>
+          <td>FAX受信ファイル（PDF/TIFF 1件ずつ）の画像データ</td>
+        </tr>
+        <tr>
+          <td>データの取り扱い</td>
+          <td>Googleの利用規約・プライバシーポリシーに準じます<br><span style="font-size:.8rem;color:var(--text-muted);"><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener" style="color:var(--primary);">Google Gemini API利用規約</a></span></td>
+        </tr>
+        <tr>
+          <td>インターネット接続</td>
+          <td>サーバーからGoogleのAPIエンドポイントへのアウトバウンドHTTPS通信が必要</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 導入前チェックリスト -->
+  <section id="checklist">
+    <span class="section-label">導入前の確認事項</span>
+    <h2>導入前チェックリスト</h2>
+    <p class="section-intro">
+      導入を検討する際に確認しておくべき事項をまとめました。
+    </p>
+    <h3>技術環境</h3>
+    <ul class="checklist" style="margin-bottom:1.75rem;">
+      <li>Linux（Ubuntu 20.04 LTS以降推奨）またはWindows（10/11/Server 2019以降）サーバーが用意できる</li>
+      <li>Python 3.10 以上がインストールできる</li>
+      <li>Node.js 18.x 以上がインストールできる</li>
+      <li>社員のPC・スマートフォンからサーバーのポート（例: 3000）にアクセスできる</li>
+      <li>サーバーからインターネット（Google API）へのHTTPS接続が可能</li>
+    </ul>
+    <h3>FAX受信環境</h3>
+    <ul class="checklist" style="margin-bottom:1.75rem;">
+      <li>受信したFAXをPDF/TIFFとしてフォルダに自動保存できるFAXサーバーがある</li>
+      <li>保存フォルダにPaperlessサーバーからアクセス可能（ローカルまたはマウント）</li>
+    </ul>
+    <h3>セキュリティ・情報管理</h3>
+    <ul class="checklist">
+      <li>FAX文書をGoogleクラウドへ一時送信することについて、社内セキュリティポリシーを確認した</li>
+      <li>Google Gemini APIキーを取得できる（Googleアカウントが用意できる）</li>
+      <li>Google Gemini APIの利用規約・料金を確認した</li>
+      <li>本システムへのアクセスをLAN内に限定する場合のネットワーク設定を確認した</li>
+    </ul>
+  </section>
+
+  <!-- セットアップ概要 -->
+  <section id="setup">
+    <span class="section-label">導入の流れ</span>
+    <h2>セットアップの大まかな流れ</h2>
+    <p class="section-intro">
+      詳細な手順は同梱の <code>INSTALL_WEB.md</code> および <code>INSTALL_MONITOR.md</code> を参照してください。ここでは流れの概要を示します。
+    </p>
+    <ul class="step-list">
+      <li>
+        <div class="step-body">
+          <h4>リポジトリを取得</h4>
+          <p>GitHubからソースコードをダウンロードまたはクローンします。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>Node.js 依存パッケージをインストール</h4>
+          <p><code>web/</code> ディレクトリで <code>npm install</code> を実行します。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>Python 依存パッケージをインストール</h4>
+          <p><code>monitor/requirements.txt</code> を使って <code>pip install -r requirements.txt</code> を実行します。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>データベースを初期化</h4>
+          <p><code>scripts/init_sqlite_db.py</code> を実行してSQLiteデータベースとテーブルを作成します。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>設定ファイルを作成</h4>
+          <p>Google Gemini APIキー、FAX受信フォルダパス、その他の環境設定を記述します。</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h4>サービスとして登録・起動</h4>
+          <p>同梱の <code>.service.sample</code> ファイルを参考に systemd サービスとして登録し、自動起動を設定します。</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 必要スキルの目安 -->
+  <section id="skills">
+    <span class="section-label">自己導入時の目安</span>
+    <h2>インストールに必要なスキル</h2>
+    <p class="section-intro">
+      自社のIT担当者やエンジニアが導入する場合のスキル目安をまとめました。プログラミング知識は不要です。定型的なIT担当者レベルで対応できる範囲です。→ <a href="comparison.html#verdict" style="color:var(--primary);font-weight:600;">Yokinsoftの有償導入支援も選択できます</a>
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem;">
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#e6faf4;color:#009f77;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">基礎</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">コマンドライン操作</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;">ターミナル（PowerShell / bash）でのディレクトリ移動・コマンド実行ができること。例：<code>cd</code>・<code>pip install</code>・<code>npm install</code></p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#e6faf4;color:#009f77;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">基礎</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">Python実行環境の準備</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;"><strong>監視モジュール（monitor）</strong>に使用。Python（3.10以上）のインストールと仕想環境（venv）の作成・有効化ができること。公式インストーラーを使えれば大丈夫です。</p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#e6faf4;color:#009f77;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">基礎</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">Node.js実行環境の準備</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;"><strong>Webインターフェース（web）</strong>に使用。Node.js（v18以上）のインストールと<code>npm install</code>によるパッケージ取得ができること。</p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#e6faf4;color:#009f77;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">基礎</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">テキストファイルの編集</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;">設定ファイル（<code>.env</code>）をメモ帳・VSCode等で開き、APIキーやフォルダパスを書き換えられること。</p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#e6faf4;color:#009f77;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">基礎</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">Googleアカウント操作</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;">Google AI StudioにGemini APIキーを発行できること（無料枠あり）。ブラウザ操作のみで完結します。</p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fff4e0;color:#b85c00;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">やや応用</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">Git / GitHubの基本操作</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;">リポジトリのクローン（<code>git clone</code>）ができること。GUIツール（GitHub Desktop等）でも代替可能です。</p>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem 1.4rem;display:flex;gap:1rem;align-items:flex-start;">
+        <span style="font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fff4e0;color:#b85c00;border-radius:999px;padding:.2rem .7rem;white-space:nowrap;flex-shrink:0;margin-top:.2rem">やや応用</span>
+        <div>
+          <h4 style="font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;">ネットワーク・サーバー基礎</h4>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.65;">社内ネットワーク内でのポート開放やファイアウォール設定の確認ができると、Webインターフェースの公開がスムーズです。</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="note-box info">
+      <span class="note-icon">ℹ️</span>
+      <p>プログラミング知識は不要です。各ステップはドキュメントの手順に沿って進めるだけで完了します。監視モジュールのカスタマイズ（分類ルール変更等）には<strong>Python</strong>の基礎知識、WebUIのカスタマイズには<strong>Node.js / TypeScript</strong>の基礎知識があると対応しやすくなります。</p>
+    </div>
+  </section>
+
+  <div class="page-nav">
+    <a href="comparison.html">← 他製品との比較に戻る</a>
+    <a href="index.html">ホームに戻る →</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-brand">Yokinsoft <span>Paperless</span> for FAX</div>
+  <div class="footer-links">
+    <a href="index.html">ホーム</a>
+    <a href="features.html">機能詳細</a>
+    <a href="comparison.html">比較</a>
+    <a href="requirements.html">動作環境</a>
+    <a href="specs.html">技術仕様</a>
+    <a href="integration.html">連携・カスタマイズ</a>
+  </div>
+  <p>&copy; Yokinsoft. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
