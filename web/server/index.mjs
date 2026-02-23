@@ -818,6 +818,8 @@ app.get('/api/documents', (req, res) => {
     'null',
     'NULL',
   ])
+  const search = String(req.query.search ?? '').trim()
+  // Legacy single-field filters kept for backward compatibility
   const sender = String(req.query.sender ?? '').trim()
   const recipient = String(req.query.recipient ?? '').trim()
   const from = String(req.query.from ?? '').trim()
@@ -837,13 +839,18 @@ app.get('/api/documents', (req, res) => {
       params.docClass = docClass
     }
   }
-  if (sender) {
-    where.push('(Sender LIKE @sender OR SenderOrganization LIKE @sender)')
-    params.sender = `%${sender}%`
-  }
-  if (recipient) {
-    where.push('Recipient LIKE @recipient')
-    params.recipient = `%${recipient}%`
+  if (search) {
+    where.push('(Title LIKE @search OR Sender LIKE @search OR SenderOrganization LIKE @search OR Recipient LIKE @search OR RecipientOrganization LIKE @search)')
+    params.search = `%${search}%`
+  } else {
+    if (sender) {
+      where.push('(Sender LIKE @sender OR SenderOrganization LIKE @sender)')
+      params.sender = `%${sender}%`
+    }
+    if (recipient) {
+      where.push('Recipient LIKE @recipient')
+      params.recipient = `%${recipient}%`
+    }
   }
   if (from) {
     where.push('DateReceived >= @from')

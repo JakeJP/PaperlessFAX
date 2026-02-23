@@ -24,8 +24,7 @@ type ListTab = 'active' | 'trash'
 
 type DocumentFilters = {
   docClass: string
-  sender: string
-  recipient: string
+  search: string
   from: string
   to: string
 }
@@ -56,8 +55,7 @@ export function DocumentsPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [docClass, setDocClass] = useState('All')
-  const [sender, setSender] = useState('')
-  const [recipient, setRecipient] = useState('')
+  const [search, setSearch] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [listTab, setListTab] = useState<ListTab>('active')
@@ -81,8 +79,7 @@ export function DocumentsPage() {
 
   const buildFilters = (override?: Partial<DocumentFilters>): DocumentFilters => ({
     docClass,
-    sender,
-    recipient,
+    search,
     from,
     to,
     ...override,
@@ -91,8 +88,7 @@ export function DocumentsPage() {
   const setQueryString = (filters: DocumentFilters, tab: ListTab, targetPage: number) => {
     const params = new URLSearchParams()
     params.set('class', filters.docClass || 'All')
-    params.set('sender', filters.sender)
-    params.set('recipient', filters.recipient)
+    params.set('search', filters.search)
     params.set('from', filters.from)
     params.set('to', filters.to)
     params.set('tab', tab)
@@ -108,8 +104,7 @@ export function DocumentsPage() {
     try {
       const result = await apiClient.listDocuments({
         docClass: filters.docClass,
-        sender: filters.sender,
-        recipient: filters.recipient,
+        search: filters.search,
         from: filters.from,
         to: filters.to,
         active: targetTab === 'active',
@@ -135,8 +130,7 @@ export function DocumentsPage() {
     const [activeResult, trashResult] = await Promise.all([
       apiClient.listDocuments({
         docClass: filters.docClass,
-        sender: filters.sender,
-        recipient: filters.recipient,
+        search: filters.search,
         from: filters.from,
         to: filters.to,
         active: true,
@@ -145,8 +139,7 @@ export function DocumentsPage() {
       }),
       apiClient.listDocuments({
         docClass: filters.docClass,
-        sender: filters.sender,
-        recipient: filters.recipient,
+        search: filters.search,
         from: filters.from,
         to: filters.to,
         active: false,
@@ -162,8 +155,7 @@ export function DocumentsPage() {
 
   useEffect(() => {
     const initialDocClass = (searchParams.get('class') || 'All').trim() || 'All'
-    const initialSender = (searchParams.get('sender') || '').trim()
-    const initialRecipient = (searchParams.get('recipient') || '').trim()
+    const initialSearch = (searchParams.get('search') || '').trim()
     const initialFrom = (searchParams.get('from') || '').trim()
     const initialTo = (searchParams.get('to') || '').trim()
     const initialTab: ListTab = searchParams.get('tab') === 'trash' ? 'trash' : 'active'
@@ -172,15 +164,13 @@ export function DocumentsPage() {
 
     const initialFilters: DocumentFilters = {
       docClass: initialDocClass,
-      sender: initialSender,
-      recipient: initialRecipient,
+      search: initialSearch,
       from: initialFrom,
       to: initialTo,
     }
 
     setDocClass(initialDocClass)
-    setSender(initialSender)
-    setRecipient(initialRecipient)
+    setSearch(initialSearch)
     setFrom(initialFrom)
     setTo(initialTo)
     setListTab(initialTab)
@@ -215,7 +205,7 @@ export function DocumentsPage() {
       eventSource.removeEventListener('documents_changed', handleDocumentsChanged)
       eventSource.close()
     }
-  }, [docClass, sender, recipient, from, to, listTab, page])
+  }, [docClass, search, from, to, listTab, page])
 
   const onSearch = () => {
     const filters = buildFilters()
@@ -227,14 +217,12 @@ export function DocumentsPage() {
   const onClear = () => {
     const clearedFilters: DocumentFilters = {
       docClass: 'All',
-      sender: '',
-      recipient: '',
+      search: '',
       from: '',
       to: '',
     }
     setDocClass(clearedFilters.docClass)
-    setSender(clearedFilters.sender)
-    setRecipient(clearedFilters.recipient)
+    setSearch(clearedFilters.search)
     setFrom(clearedFilters.from)
     setTo(clearedFilters.to)
     setQueryString(clearedFilters, listTab, 1)
@@ -329,33 +317,34 @@ export function DocumentsPage() {
           </span>
         </button>
       </div>
-      <div className="grid">
-        <label className="field">
-          <span>送信者</span>
-          <input value={sender} onChange={(event) => setSender(event.target.value)} placeholder="送信者" />
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="field min-w-48 flex-1">
+          <span>キーワード</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }}
+            placeholder="タイトル・送信者・受信者を部分一致で検索"
+          />
         </label>
-        <label className="field">
-          <span>受信者</span>
-          <input value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="受信者" />
-        </label>
-        <label className="field">
+        <label className="field w-36 shrink-0">
           <span>期間～</span>
           <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
         </label>
-        <label className="field">
+        <label className="field w-36 shrink-0">
           <span>まで</span>
           <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
         </label>
-      </div>
-      <div className="actions">
-        <button onClick={onSearch}>
-          <MagnifyingGlassIcon className="mr-1 inline-block h-4 w-4" />
-          検索
-        </button>
-        <button onClick={onClear}>
-          <XMarkIcon className="mr-1 inline-block h-4 w-4" />
-          クリア
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button onClick={onSearch}>
+            <MagnifyingGlassIcon className="mr-1 inline-block h-4 w-4" />
+            検索
+          </button>
+          <button onClick={onClear}>
+            <XMarkIcon className="mr-1 inline-block h-4 w-4" />
+            クリア
+          </button>
+        </div>
       </div>
 
       <p className="hint-text">

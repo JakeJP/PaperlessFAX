@@ -52,8 +52,7 @@ export type QueueEntry = {
 
 export type DocumentListQuery = {
   docClass?: string
-  sender?: string
-  recipient?: string
+  search?: string
   from?: string
   to?: string
   active?: boolean
@@ -116,11 +115,8 @@ const httpClient: ApiClient = {
     if (query.docClass && query.docClass !== 'All') {
       search.set('class', query.docClass)
     }
-    if (query.sender) {
-      search.set('sender', query.sender)
-    }
-    if (query.recipient) {
-      search.set('recipient', query.recipient)
+    if (query.search) {
+      search.set('search', query.search)
     }
     if (query.from) {
       search.set('from', query.from)
