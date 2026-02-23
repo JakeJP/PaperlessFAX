@@ -63,15 +63,29 @@ NodeJS と Python の実行環境はインストール済みとします。サ�
 
 以下、開発ビルド(dev) での起動手順
 
-### 0) Gemini API Key を設定
+### 0) .env ファイルの編集
 
-Google Gemini API( AI Studio ) から APIKey を入手してください。
+利用前に最低限次の項目を設定してください。
 
-`.env` ファイルを編集して Gemini の API Key を設定します。
+1. Gemini API Key を設定
+    Google Gemini API( AI Studio ) から APIKey を入手してください。
+    Gemini の API Key を設定します。
 
-```bash
-GEMINI_API_KEY=AXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+    ```bash
+    GEMINI_API_KEY=AXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ```
+
+2. 開発・本番環境の選択
+   ```
+   APP_ENV=dev
+   ```
+   開発環境用(dev)のDBが作成されます。開発用DBは本番環境(prod)へ引き継がれないので注意。
+
+3. サムネイル作成機能をオン・オフ
+    サムネイル作成をオンにするとデータファイルのサイズが大きくなります。
+    ```
+    THUMBNAIL=true
+    ```
 
 ### 1) DB 初期化
 
@@ -91,16 +105,15 @@ user    user
 ```bash
 cd web
 npm install
-npm run dev
+npm run start
 ```
 
 NodeJS で必要なライブラリのインストール。そして、
 デフォルトでは 3001 ポートでウェブサーバーが起動します。
 例） `http://localhost:3001/`
 
-
-
-`npm run dev` は API サーバー（Express）とフロント（Vite middleware）を 1 プロセスで起動します。
+`npm run start` はリリースパッケージ用。
+`npm run dev` はビルド環境ありで API サーバー（Express）とフロント（Vite middleware）を 1 プロセスで起動します。
 
 ### 3) ファイル監視サービス 環境構築と起動
 
@@ -114,7 +127,7 @@ pip install -r requirements.txt
 monitor.py はディレクトリを指定して監視常駐プログラムとして動作します。
 
 ```bash
-python monitor.py --as-service --dir <監視するFILEAPTH>
+python monitor.py --as-service --dir <監視するフォルダPATH>
 ```
 
 monitor.py は１ファイルずつ、または複数ファイルをスキャンして結果をデータベースに格納するまでの単独のコマンドプログラムとしても動作します。
@@ -130,7 +143,7 @@ Webブラウザで `http://localhost:3001/` へアクセスします。
 管理者の初期IDとパスワードは
 
 - admin
-- pass1234
+- admin
 
 ### 5) 手動で監視フォルダーにPDFファイルをコピーしてみます
 
