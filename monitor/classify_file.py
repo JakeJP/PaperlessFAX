@@ -103,17 +103,46 @@ def _normalize_payload(payload: dict[str, Any], source_name: str) -> dict[str, A
     return normalized
 
 
+def _build_genai_client() -> tuple[Any, str]:
+    """GOOGLE_GENAI_USE_VERTEXAI に応じた google-genai クライアントとプロバイダー名を返す。"""
+    try:
+        from google import genai  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError("google-genai package is required") from exc
+
+    use_vertexai = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").strip().lower() in ("true", "1", "yes", "on")
+
+    if use_vertexai:
+        project = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
+        if not project:
+            raise RuntimeError("GOOGLE_CLOUD_PROJECT is not set")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "global").strip() or "global"
+        client = genai.Client(vertexai=True, project=project, location=location)
+        provider = "vertexai"
+    else:
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY is not set")
+        client = genai.Client(api_key=api_key)
+        provider = "gemini"
+
+    return client, provider
+
+
+def _resolve_model(provider: str) -> str:
+    """プロバイダーに応じたモデル名を返す。"""
+    if provider == "vertexai":
+        default = "gemini-2.0-flash-001"
+        return os.getenv("VERTEXAI_MODEL", default).strip() or default
+    default = DEFAULT_MODEL
+    return os.getenv("GEMINI_API_MODEL", default).strip() or default
+
+
 def classify_file(file_path: str | Path, prompt_input: str | Path) -> dict[str, Any]:
     path = Path(file_path)
 
     if not path.exists() or not path.is_file():
         raise FileNotFoundError(f"target file not found: {path}")
-
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
-
-    model = os.getenv("GEMINI_API_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
 
     prompt_text: str
     if isinstance(prompt_input, Path):
@@ -138,15 +167,16 @@ def classify_file(file_path: str | Path, prompt_input: str | Path) -> dict[str, 
                 prompt_text = prompt_input_text
 
     try:
-        from google import genai
-        from google.genai import types
+        from google.genai import types  # noqa: PLC0415
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError("google-genai package is required") from exc
+
+    client, provider = _build_genai_client()
+    model = _resolve_model(provider)
 
     mime_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     file_bytes = path.read_bytes()
 
-    client = genai.Client(api_key=api_key)
     file_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
     generation_config = _read_optional_generation_config()
     request_kwargs: dict[str, Any] = {
@@ -157,7 +187,6 @@ def classify_file(file_path: str | Path, prompt_input: str | Path) -> dict[str, 
         request_kwargs["config"] = types.GenerateContentConfig(**generation_config)
 
     response = client.models.generate_content(**request_kwargs)
-
     text = getattr(response, "text", "") or ""
     payload = _extract_json(text)
     payload = _normalize_payload(payload, path.name)

@@ -1,3 +1,6 @@
-google-genai>=0.6.0
+# Gemini API および Vertex AI の両方に対応（google-genai SDK で統一）
+# Vertex AI 使用時は GOOGLE_GENAI_USE_VERTEXAI=true を設定
+google-genai>=1.0.0
+
 watchdog>=5.0.0
 PyMuPDF>=1.24.0
