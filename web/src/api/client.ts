@@ -99,6 +99,7 @@ type ApiClient = {
   listQueue: () => Promise<QueueEntry[]>
   deleteQueueEntry: (entryId: number) => Promise<{ entryId: number; deleted: boolean }>
   clearQueue: () => Promise<{ deleted: number }>
+  requeueDocument: (id: string) => Promise<{ id: string; requeued: boolean }>
 }
 
 const httpClient: ApiClient = {
@@ -158,6 +159,7 @@ const httpClient: ApiClient = {
   listQueue: () => request<QueueEntry[]>('/admin/queue'),
   deleteQueueEntry: (entryId) => request<{ entryId: number; deleted: boolean }>(`/admin/queue/${entryId}`, { method: 'DELETE' }),
   clearQueue: () => request<{ deleted: number }>('/admin/queue', { method: 'DELETE' }),
+  requeueDocument: (id) => request<{ id: string; requeued: boolean }>(`/documents/${encodeURIComponent(id)}/requeue`, { method: 'POST' }),
 }
 
 export const apiClient: ApiClient = httpClient

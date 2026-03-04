@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowDownTrayIcon,
   ArrowLeftIcon,
+  ArrowPathIcon,
   ArrowTopRightOnSquareIcon,
   ClipboardDocumentIcon,
   DocumentMagnifyingGlassIcon,
@@ -112,6 +113,7 @@ export function DocumentDetailPage() {
   const [updatingActive, setUpdatingActive] = useState(false)
   const [updatingDocClass, setUpdatingDocClass] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [requeuing, setRequeuing] = useState(false)
   const [status, setStatus] = useState('')
   const [docClassOptions, setDocClassOptions] = useState<DocumentClassOption[]>([])
   const [jsonOpen, setJsonOpen] = useState(() => user?.role === 'admin')
@@ -186,6 +188,7 @@ export function DocumentDetailPage() {
   const confidence = resolveConfidence(detail)
   const thumbnailImage = resolveThumbnailImage(detail)
   const totalPages = resolveTotalPages(detail)
+  const isRetryMaxExceeded = detail.documentData?.status === 'retry_max_exceeded'
 
   const downloadDocumentDataJson = () => {
     const jsonText = JSON.stringify(detail.documentData, null, 2)
@@ -215,6 +218,28 @@ export function DocumentDetailPage() {
         <div className="float-right ml-4 mb-2 flex flex-wrap items-center justify-end gap-2">
           {user?.role === 'admin' && (
             <>
+              {isRetryMaxExceeded && (
+                <button
+                  onClick={async () => {
+                    if (!detail) return
+                    setRequeuing(true)
+                    try {
+                      await apiClient.requeueDocument(detail.id)
+                      setStatus('再スキャンキューに追加しました。')
+                    } catch {
+                      setStatus('再スキャンのキュー追加に失敗しました。')
+                    } finally {
+                      setRequeuing(false)
+                    }
+                  }}
+                  disabled={requeuing}
+                  title="再スキャン"
+                  className="inline-flex items-center gap-2 rounded px-4 py-2 text-base font-semibold text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40"
+                >
+                  <ArrowPathIcon className={`h-6 w-6 ${requeuing ? 'animate-spin' : ''}`} />
+                  再スキャン
+                </button>
+              )}
               <button
                 onClick={async () => {
                   if (!detail) return

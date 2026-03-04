@@ -356,6 +356,20 @@ function asIsoNow() {
   return new Date().toISOString().replace('.000Z', '')
 }
 
+function localIsoString(date) {
+  const d = date ?? new Date()
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 19)
+}
+
+function getRetryIntervalMs() {
+  const raw = String(process.env.MONITOR_RETRY_INTERVAL_MINUTES ?? '10').trim()
+  const minutes = parseFloat(raw)
+  const mins = Number.isFinite(minutes) && minutes >= 1 ? minutes : 10
+  return Math.round(mins * 60 * 1000)
+}
+
 function toSseData(eventName, payload) {
   const id = String(++documentEventSequence)
   return `id: ${id}\nevent: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`
@@ -1017,6 +1031,37 @@ app.get('/documents/:id/Source', (req, res) => {
   }
 
   return sendDocumentSourceFile(res, req.params.id)
+})
+
+app.post('/api/documents/:id/requeue', (req, res) => {
+  if (!req.authUser) {
+    return res.status(401).json({ error: 'authentication required' })
+  }
+  if (req.authUser.role !== 'admin') {
+    return res.status(403).json({ error: 'admin role required' })
+  }
+
+  const id = req.params.id
+  const row = db.prepare('SELECT SourcePath FROM Documents WHERE ID = ?').get(id)
+  if (!row) {
+    return res.status(404).json({ error: 'document not found' })
+  }
+
+  const sourcePath = String(row.SourcePath ?? '').trim()
+  if (!sourcePath) {
+    return res.status(400).json({ error: 'document has no source path' })
+  }
+
+  const lastFailure = localIsoString(new Date(Date.now() - getRetryIntervalMs()))
+
+  const existing = db.prepare('SELECT EntryID FROM Queue WHERE SourcePath = ? ORDER BY EntryID LIMIT 1').get(sourcePath)
+  if (existing) {
+    db.prepare('UPDATE Queue SET Retry = 0, LastFailure = ? WHERE EntryID = ?').run(lastFailure, existing.EntryID)
+  } else {
+    db.prepare('INSERT INTO Queue (Retry, LastFailure, SourcePath) VALUES (0, ?, ?)').run(lastFailure, sourcePath)
+  }
+
+  res.json({ id, requeued: true })
 })
 
 app.delete('/api/documents/:id', (req, res) => {
