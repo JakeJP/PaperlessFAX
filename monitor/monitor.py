@@ -29,7 +29,8 @@ DEFAULT_SCAN_INTERVAL_SECONDS = 600
 DEFAULT_STABLE_CHECK_COUNT = 3
 DEFAULT_STABLE_CHECK_INTERVAL_SECONDS = 1.0
 DEFAULT_STABLE_TIMEOUT_SECONDS = 120
-DEFAULT_RETRY_MAX = 3
+DEFAULT_RETRY_MAX = 5
+DEFAULT_RETRY_INTERVAL_MINUTES = 10
 DEFAULT_MONITOR_EVENT_NOTIFY_ENABLED = True
 DEFAULT_MONITOR_EVENT_NOTIFY_TIMEOUT_SECONDS = 3.0
 DEFAULT_MONITOR_EVENT_NOTIFY_PATH = "/api/internal/documents-inserted"
@@ -75,6 +76,15 @@ def get_retry_max() -> int:
         return max(0, value)
     except ValueError:
         return DEFAULT_RETRY_MAX
+
+
+def get_retry_interval_seconds() -> float:
+    raw = os.getenv("MONITOR_RETRY_INTERVAL_MINUTES", str(DEFAULT_RETRY_INTERVAL_MINUTES)).strip()
+    try:
+        minutes = float(raw)
+        return max(1.0, minutes) * 60.0
+    except ValueError:
+        return DEFAULT_RETRY_INTERVAL_MINUTES * 60.0
 
 
 def parse_env_bool(value: str | None, default: bool = False) -> bool:
@@ -207,6 +217,7 @@ def print_startup_environment(args: argparse.Namespace, db_path: Path, file_type
     )
     print(f"[monitor] MONITOR_FILE_TYPES={','.join(sorted(file_types))}", file=sys.stderr)
     print(f"[monitor] MONITOR_RETRY_MAX={get_retry_max()}", file=sys.stderr)
+    print(f"[monitor] MONITOR_RETRY_INTERVAL_MINUTES={os.getenv('MONITOR_RETRY_INTERVAL_MINUTES', str(DEFAULT_RETRY_INTERVAL_MINUTES))}", file=sys.stderr)
     thumbnail_enabled = parse_env_bool(os.getenv("THUMBNAIL"), default=DEFAULT_THUMBNAIL_ENABLED)
     thumbnail_size = max(64, parse_env_int(os.getenv("THUMBNAIL_SIZE"), DEFAULT_THUMBNAIL_SIZE))
     print(f"[monitor] THUMBNAIL={thumbnail_enabled}", file=sys.stderr)
@@ -778,39 +789,49 @@ class MonitorService:
             print(f"[monitor] finished: {target} success={succeeded} elapsed={elapsed:.2f}s")
 
     def process_failed_queue_entries(self) -> None:
-        """LastFailure IS NOT NULL かつ LastFailure から DEFAULT_SCAN_INTERVAL_SECONDS 秒以上
-        経過したエントリをリトライ対象として処理する。
+        """LastFailure IS NOT NULL のエントリを指数バックオフに従ってリトライスケジュールする。
 
-        リトライ上限を超えたエントリは unknown document として登録して削除する。
+        待機時間は base_interval_seconds * 2^retry で算出し、その時間が経過したエントリのみ
+        対象とする。リトライ上限を超えたエントリは unknown document として登録して削除する。
         それ以外は Retry をインクリメントして LastFailure = NULL にリセットし、
         new_entry_event をセットすることで file_worker_loop に処理を委ねる。
         直接 process_single_file を呼び出さないことで、file_worker_loop との
         二重処理（重複 Document 挿入）を防ぐ。
         """
         retry_max = get_retry_max()
-        # LastFailure からの経過時間がループ待機間隔以上のもののみリトライ対象にする
-        threshold = (datetime.now() - timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)).isoformat(timespec="seconds")
+        base_interval_seconds = get_retry_interval_seconds()
+        now = datetime.now()
 
         with self.open_db() as conn:
             rows = conn.execute(
                 """
-                SELECT EntryID, Retry, SourcePath
+                SELECT EntryID, Retry, SourcePath, LastFailure
                 FROM Queue
                 WHERE LastFailure IS NOT NULL
-                  AND LastFailure <= ?
                 ORDER BY EntryID
                 """,
-                (threshold,),
             ).fetchall()
 
         enqueued = 0
         for row in rows:
             entry_id = int(row["EntryID"])
-            retry = int(row["Retry"]) + 1
+            retry = int(row["Retry"])
             source_path = Path(str(row["SourcePath"]))
+            last_failure_str = str(row["LastFailure"])
 
-            if retry > retry_max:
-                self.insert_unknown_document_from_queue(source_path, retry)
+            # Exponential backoff: wait base * 2^retry seconds before next attempt
+            wait_seconds = base_interval_seconds * (2 ** retry)
+            try:
+                last_failure = datetime.fromisoformat(last_failure_str)
+            except ValueError:
+                last_failure = now - timedelta(seconds=wait_seconds + 1)
+
+            if now - last_failure < timedelta(seconds=wait_seconds):
+                continue
+
+            new_retry = retry + 1
+            if new_retry > retry_max:
+                self.insert_unknown_document_from_queue(source_path, new_retry)
                 self.delete_queue_entry(entry_id)
                 print(
                     f"[monitor] queue retry exceeded max ({retry_max}), registered unknown document and removed queue entry: {source_path}"
@@ -820,12 +841,14 @@ class MonitorService:
             with self.open_db() as conn:
                 conn.execute(
                     "UPDATE Queue SET Retry = ?, LastFailure = NULL WHERE EntryID = ?",
-                    (retry, entry_id),
+                    (new_retry, entry_id),
                 )
                 conn.commit()
 
             enqueued += 1
-            print(f"[monitor] queue retry scheduled: retry={retry} path={source_path}")
+            print(
+                f"[monitor] queue retry scheduled: retry={new_retry} wait_was={wait_seconds:.0f}s path={source_path}"
+            )
 
         if enqueued:
             # file_worker_loop に処理を委ねる（直接 process_single_file は呼ばない）
@@ -883,16 +906,20 @@ class MonitorService:
         def queue_retry_loop() -> None:
             """失敗キュー (Queue テーブルの LastFailure IS NOT NULL) のリトライを定期的に実行する。
 
+            指数バックオフのタイミング判定は process_failed_queue_entries 内で行うため、
+            このループは 60 秒ごとに定期チェックするだけでよい。
             失敗エントリを LastFailure = NULL にリセットして new_entry_event をセットするだけで、
             実際のファイル処理は file_worker_loop に委ねる。
             そのため processing_lock を保持する必要はない。
             """
+            _RETRY_LOOP_CHECK_INTERVAL_SECONDS = 60
+
             # 起動直後に一度実行することでプロセス再起動前の失敗済みエントリを即時消化する
             self.process_failed_queue_entries()
 
             while not self.stop_event.is_set():
                 # 1 秒刻みで待機することで stop_event を素早く検知できる
-                for _ in range(DEFAULT_SCAN_INTERVAL_SECONDS):
+                for _ in range(_RETRY_LOOP_CHECK_INTERVAL_SECONDS):
                     if self.stop_event.is_set():
                         return
                     time.sleep(1)
