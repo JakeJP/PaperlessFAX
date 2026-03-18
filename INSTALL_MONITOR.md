@@ -36,6 +36,8 @@ production では `DATABASE_PATH` の明示を推奨します。
 - `DATABASE_PATH`（例: `C:/ProgramData/Yokinsoft/Paperless/data/yokinspaperless.db`）
 - `GEMINI_API_KEY`
 - `GEMINI_API_MODEL`（任意、未指定時は既定モデル）
+- `GEMINI_API_MEDIA_RESOLUTION` または `VERTEXAI_MEDIA_RESOLUTION`（任意、`low` / `medium` / `high`）
+- `GEMINI_GENNERATION_MEDIA_RESOLUTION`（任意、共通指定。個別設定がある場合はそちらを優先）
 - `MONITOR_DIR` または `MONITOR_DIR_1`, `MONITOR_DIR_2`, ...
 - `MONITOR_FILE_TYPES`（例: `.pdf,.tiff,.tif`）
 

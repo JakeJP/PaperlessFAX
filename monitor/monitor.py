@@ -203,6 +203,9 @@ def print_startup_environment(args: argparse.Namespace, db_path: Path, file_type
     print(f"[monitor] DATABASE_PATH={os.getenv('DATABASE_PATH', '')}", file=sys.stderr)
     print(f"[monitor] DATABASE_URL={os.getenv('DATABASE_URL', '')}", file=sys.stderr)
     print(f"[monitor] GEMINI_API_MODEL={os.getenv('GEMINI_API_MODEL', '')}", file=sys.stderr)
+    print(f"[monitor] GEMINI_API_MEDIA_RESOLUTION={os.getenv('GEMINI_API_MEDIA_RESOLUTION', '')}", file=sys.stderr)
+    print(f"[monitor] VERTEXAI_MEDIA_RESOLUTION={os.getenv('VERTEXAI_MEDIA_RESOLUTION', '')}", file=sys.stderr)
+    print(f"[monitor] GEMINI_GENNERATION_MEDIA_RESOLUTION={os.getenv('GEMINI_GENNERATION_MEDIA_RESOLUTION', '')}", file=sys.stderr)
     print(f"[monitor] GEMINI_GENNERATION_TEMPERATURE={os.getenv('GEMINI_GENNERATION_TEMPERATURE', '')}", file=sys.stderr)
     gemini_progress_interval_seconds = max(
         5,

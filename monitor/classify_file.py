@@ -10,6 +10,18 @@ from typing import Any
 DEFAULT_MODEL = "gemini_flash_latest"
 
 
+def _read_optional_text_env(var_name: str) -> str | None:
+    raw = os.getenv(var_name)
+    if raw is None:
+        return None
+
+    text = raw.strip()
+    if not text:
+        return None
+
+    return text
+
+
 def _read_optional_float_env(var_name: str) -> float | None:
     raw = os.getenv(var_name)
     if raw is None:
@@ -40,7 +52,55 @@ def _read_optional_int_env(var_name: str) -> int | None:
         raise ValueError(f"{var_name} must be an int") from exc
 
 
-def _read_optional_generation_config() -> dict[str, Any]:
+def _resolve_media_resolution_value(types_module: Any, raw_value: str) -> Any:
+    normalized = raw_value.strip().replace("-", "_").replace(" ", "_").upper()
+    value_map = {
+        "LOW": "MEDIA_RESOLUTION_LOW",
+        "MEDIUM": "MEDIA_RESOLUTION_MEDIUM",
+        "HIGH": "MEDIA_RESOLUTION_HIGH",
+        "MEDIA_RESOLUTION_LOW": "MEDIA_RESOLUTION_LOW",
+        "MEDIA_RESOLUTION_MEDIUM": "MEDIA_RESOLUTION_MEDIUM",
+        "MEDIA_RESOLUTION_HIGH": "MEDIA_RESOLUTION_HIGH",
+    }
+    enum_name = value_map.get(normalized)
+    if enum_name is None:
+        allowed = "low, medium, high"
+        raise ValueError(f"media resolution must be one of: {allowed}")
+
+    media_resolution_enum = getattr(types_module, "MediaResolution", None)
+    if media_resolution_enum is None:
+        return enum_name
+
+    return getattr(media_resolution_enum, enum_name, enum_name)
+
+
+def _read_optional_media_resolution(provider: str, types_module: Any) -> Any | None:
+    provider_var_names = {
+        "vertexai": "VERTEXAI_MEDIA_RESOLUTION",
+        "gemini": "GEMINI_API_MEDIA_RESOLUTION",
+    }
+    candidate_var_names = [
+        provider_var_names.get(provider, ""),
+        "GEMINI_GENNERATION_MEDIA_RESOLUTION",
+    ]
+
+    for var_name in candidate_var_names:
+        if not var_name:
+            continue
+
+        raw_value = _read_optional_text_env(var_name)
+        if raw_value is None:
+            continue
+
+        try:
+            return _resolve_media_resolution_value(types_module, raw_value)
+        except ValueError as exc:
+            raise ValueError(f"{var_name} {exc}") from exc
+
+    return None
+
+
+def _read_optional_generation_config(provider: str, types_module: Any) -> dict[str, Any]:
     config: dict[str, Any] = {}
 
     temperature = _read_optional_float_env("GEMINI_GENNERATION_TEMPERATURE")
@@ -54,6 +114,10 @@ def _read_optional_generation_config() -> dict[str, Any]:
     top_p = _read_optional_float_env("GEMINI_GENNERATION_TOPP")
     if top_p is not None:
         config["top_p"] = top_p
+
+    media_resolution = _read_optional_media_resolution(provider, types_module)
+    if media_resolution is not None:
+        config["media_resolution"] = media_resolution
 
     return config
 
@@ -178,7 +242,7 @@ def classify_file(file_path: str | Path, prompt_input: str | Path) -> dict[str, 
     file_bytes = path.read_bytes()
 
     file_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
-    generation_config = _read_optional_generation_config()
+    generation_config = _read_optional_generation_config(provider, types)
     request_kwargs: dict[str, Any] = {
         "model": model,
         "contents": [prompt_text, file_part],

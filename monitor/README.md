@@ -35,6 +35,15 @@ pip install -r requirements.txt
 # Gemini API
 GEMINI_API_KEY=your_api_key_here
 GEMINI_API_MODEL=gemini-2.0-flash          # 省略時: gemini-flash-latest
+GEMINI_API_MEDIA_RESOLUTION=high           # 任意: low | medium | high
+GEMINI_GENNERATION_MEDIA_RESOLUTION=high   # 任意: 共通指定。個別指定が優先
+
+# Vertex AI を使う場合
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=global
+VERTEXAI_MODEL=gemini-2.0-flash-001
+VERTEXAI_MEDIA_RESOLUTION=high             # 任意: low | medium | high
 
 # 監視対象ディレクトリ（複数指定可）
 MONITOR_DIR=/path/to/watch
@@ -106,6 +115,8 @@ python monitor.py --prompt
 ### Gemini API 呼び出し
 
 `classify_file_prompt.md` の基本プロンプトに、DB の `DocumentClasses` テーブルに登録された各クラスのプロンプトを結合して送信します。進捗は `MONITOR_GEMINI_PROGRESS_INTERVAL_SECONDS`（既定: `60` 秒）間隔で標準出力へ出力します。
+
+`generate_content` の `media_resolution` は任意で指定できます。Gemini API を使う場合は `GEMINI_API_MEDIA_RESOLUTION`、Vertex AI を使う場合は `VERTEXAI_MEDIA_RESOLUTION` を使用し、どちらも未設定なら `GEMINI_GENNERATION_MEDIA_RESOLUTION` を共通設定として参照します。指定可能な値は `low` / `medium` / `high` です。
 
 ### イベント通知
 
